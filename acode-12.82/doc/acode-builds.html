@@ -1,0 +1,179 @@
+<html>
+<head>
+<title>A-code build types</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code build types</h2>
+
+<p>
+  A-code games can be built in a number of different ways, such as e.g.
+  console only. This document explains all these build types and their uses.
+  For details on actually building games in verious modes, please see <a
+  href="acode-c-build.html">a separate page</a> explaining how to build A-code
+  games from derived ANSI C sources.
+</p>
+
+<hr class=dash>
+
+<table class=centab>
+  <tr><td><a href='#console'>The <b><i>console</i></b> build</a><td></tr>
+  <tr><td><a href='#browser'>The <b><i>browser</i></b> build</a><td></tr>
+  <tr><td><a href='#library'>The <b><i>library</i></b> build</a><td></tr>
+  <tr><td><a href='#javascript'>The <b><i>javascript</i></b> build</a><td></tr>
+  <tr><td><a href='#qt5'>The <b><i>QT5</i></b> build</a><td></tr>
+  <tr><td><a href='#single'>The <b><i>single turn</i></b> build</a><td></tr>
+</table>
+
+<hr class=dash>
+
+<h3 id=console class=centered>The <i>console</i> build</h3>
+
+<p>
+  The console build replicates how the original Adventure was initially
+  played. It takes input directly from the player and outputs any responses in
+  plain text to a "computer terminal" &ndash; these days most likely a
+  terminal emulator window. Some players still prefer this build typeand it is
+  also very handy for debugging.
+</p>
+
+<p>
+  While it still defaults to the dimensions of displays of ancient VDUs (24
+  lines and 80 fixed font characters per line), other dimensions can be
+  specified on the invocation command line by means of the -s option. The
+  kernel also provides the necessary hooks for a game to permit changes to
+  these defaults while playing.
+</p>
+
+<p>
+  The console build also offers a unique opportunity to experience an A-code
+  game the way the original Adventure was played in 1970s/80s. The -o command
+  line option allows the output speed to be set to the baud rate of 110 (a
+  teletype), 300 (earliest VDUs), 600, 1200, 2400, 4800 and 9600. Younger
+  players are hereby invited to marvel at the patience required to play at the
+  lower speeds (as we did!).
+</p>
+
+<p>
+  For the full list of console build command line options, please see the
+  document describing <a href="acode-comline.html">command line invocation</a>
+  of A-code games.
+</p>
+
+<hr class=dash>
+
+<h3 id=browser class=centered>The <i>browser/console</i> build</h3>
+
+<p>
+  By default, A-code games built in this way do not interact with the player
+  directly, but instead invoke a local browser and use that to render game's
+  output and to obtain player's commands. In this mode, an A-code game acts as
+  a very simple HTTP server. No access to network is involved &ndash; there's
+  just local socket-based communication between the game and the browser.
+</p>
+
+<p>
+  Unless otherwise specified, the player's default browser is invoked, but
+  another browser can be specified either on the invocation command line or by
+  modifying the acode.config file created by the A-code kernel.
+</p>
+
+<p>
+  The browser build of an A-code game automatically includes the console build
+  (but not the other way around!). Thus a browser-build game can be invoked in
+  the console mode by adding -C to the invocation command line. All console
+  build command line options apply when -C is spcified.
+</p>
+
+<hr class=dash>
+
+<h3 id=library class=centered>The <i>library</i> build</h3>
+
+<p>
+  In some cases it is not feasible or appropriate for an A-code game to drive
+  its own command/response loop. App frameworks generally expect to do so
+  themselves. This situation is handled by compiling derived C sources in the
+  library mode &ndash; used, for example, in Brian Ball's iOS port of Adv770
+  and in HTML/JavaScript builds of A-code games.
+</p>
+
+<p>
+  A simple such wrapper (<i>libtest.c</i>) is provided with kernel sources and
+  should be compiled and linked with derived C-sources and with kernel sources
+  to produce a library build executable.
+</p>
+
+<hr class=dash>
+
+<h3 id=javascript class=centered>The <i>HTML/JavaScript</i> build</h3>
+
+<p>
+  Thanks to the magic of <a
+  href="http://kripken.github.io/emscripten-site/">emscripten</a>, A-code
+  games can be built as pure (and purely local, with no network dependencies)
+  HTML/JavaScript page, usable by any HTML5 compliant browser. If built this
+  way, A-code games run entirely within the player's browser with no access to
+  the network, and use browser's own sand-boxed file system for saving and
+  restoring games.
+</p>
+
+<hr class=dash>
+
+<h3 id=qt5 class=centered>The <i>QT5</i> build</h3>
+
+<p>The QT5 build uses the library mode of A-code and wraps it in a QT5
+GUI front-end.
+
+<hr class=dash>
+
+<h3 id=single class=centered>The <i>single turn</i> build</h3>
+
+<p>
+  Originally developed for CGI operation, single turn game builds are only
+  suitable for running in a cloud, via a suitable front-end script, e.g. a
+  cgi-bin or a PHP one. In this mode, the game executable is supplied a single
+  command as a parameter on the invocation command line, sends the text
+  generated in response to standard output and exits. (See the <a
+  href="acode-comline.html"> the command line options document</a> for
+  details.)
+</p>
+
+<p>
+  The actual interaction with the player is carried out by the front-end
+  script, which repeatedly invokes the executable for successive game turns.
+  The secret sauce is, of course, the player-invisible save and restore of the
+  current state of the game. This mechanism got later adapted for use by other
+  game modes, automatically giving all A-code games a persistent state.
+</p>
+
+<p>
+  In this build all text output is HTML-formatted by default, though this can
+  be overridden if necessary, by adding -C to the invocation command line. All
+  output text is also prefixed by a single character, which provides
+  information to the wrapper script and is not expected to be displayed to the
+  player.
+</p>
+
+<br>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

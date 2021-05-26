@@ -1,0 +1,228 @@
+<html>
+<head>
+<title>A-code game invocation options</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code game invocation options</h2>
+<h4 class=centered>(A-code version 12.82)</h4>
+
+<p>This document describes command line options available when running
+an A-code game.  Game behaviour is generally regulated by the internally
+documented acode.conf file, which can be found in the <b>.acode</b>
+directory (just <b>acode</b> on MS platforms), automatically created in
+player's home directory.  Where command line options refer to particular
+features covered by the configuration file, they override the
+configuration file settings.</p>
+
+<p>Conventions:</p>
+<ul>
+  <li>Angle brackets &lt;string&gt; denote a symbolic string to be
+      replaced by something appropriate. E.g. &lt;filename&gt; would be
+      replaced by the name of a file (with no surrounding angel brackets).
+  </li>
+  <li>Square brackets [ ] denote something optional. So e.g. 
+      -l[&lt;logfilename&gt;] means that the name of the log file may
+      be omitted.
+  </li>
+  <li>Braces { } denote a list of permissible values, separated
+      by vertical bars |. E.g. -b[{0|1|2}] means the -b may be
+      optionally (square brackets!) followed by one of the three digits
+      zero,one or two.
+  </li>
+  <li>All options are shown with a short (single dash) prefix, but
+      double dashes are also accepted.
+  </li>
+  <li>Where a value can be specified with a command line option,
+      the syntax shown is that of the value abutting directly to
+      the option specification letter. However, an equality sign =
+      can be placed between the two, so that -b0 is equivalent to
+      -b=0.
+  </li>
+</ul>
+</p>
+
+<p>The following command line options are valid for both the browser
+and the console display modes:</p>
+
+<dl>
+  <p><dt><b>-n</b></dt>
+  <dd>Force a new game. By default, if a previous game session got
+      somehow forcibly interrupted (e.g. by the game process being
+      killed for whatever reason), the interrupted session is
+      automatically resumed when the game is restarted. The -n
+      option overrides this behaviour and forces the interrupted
+      session to be forgotten.
+  </dd>
+  <p><dt><b>[-r]&lt;dumpfile&gt;</b></dt>
+  <dd>Restore game from dump. Ignored if the game
+      does not support game dump files being specified 
+      on the command line.
+      The -r optional in that any command line
+      argument which does not begin with a dash
+      will be interpreted as the name
+      of the dumpfile to restore on invocation.
+  </dd></p>
+  <p><dt><b>-l[&lt;logfile&gt;]</b></dt>
+  <dd>Log the game.
+      Specifies the file into which a session log is to 
+      be written. The log is human-readable, but has some
+      additional information useful for debugging.
+      If the nominated logfile
+      already exists, it gets appended to. If no logfile is
+      specified the name of the game is used, suffixed with .log.
+  </dd></p>
+  <p><dt><b>-B&lt;browser&gt;</b></dt>
+  <dd>
+      Browser mode executables only.
+      Use a non-default browser for player interaction.
+      Browsers can be specified by their
+      pathname, or by their name &ndash; in the latter case the name
+      is searched for in directories given by the PATH variable.
+  </dd></p>
+  <p><dt><b>-C</b></dt>
+  <dd>For browser-mode executables, force console display &ndash; 
+      i.e. do not use the browser interface. For single turn mode executables
+      this option enforces plain text, non-formatted output, instead of
+      default HTML output.
+  </dd></p>
+  <p><dt><b>--</b></dt>
+  <dd>For single turn executable, treat the rest of the command line
+      as the player's game command.
+  </dd></p>
+  <p><dt><b>-b[{0|1|2}]</b></dt>
+  <dd>Set or invert the blank line setting. If set to zero
+      blank lines are inserted before and after each prompt.
+      If the value is 1, blank lines around '?' prompts are suppressed,
+      resulting in a more compact display. If the value is 2,
+      then ALL blank lines are suppressed, for super-compact, but
+      less readable output. If no value is specified, the
+      new setting is 0 or 1, inverting the A-code default for this
+      game. In old-style A-code (Adv550), which does 
+      not distinguish between replies to queries and general
+      commands, this only affects presence/absence of
+      a blank line after the prompt line, and never before it.
+  </dd></p>
+  <p><dt><b>-u{0|1|none}</b></dt>
+  <dd>Set the initial state of undo-history collection.
+      Ignored if the game does not support undo.
+      If the value is zero, the default undo status is OFF.
+      If the value is one, the default undo status is ON.
+      The "none" state implies OFF and disallows undo functionality
+      being subsequently switched on from
+      within the game. The default state is ON for games
+      which define the verb UNDO, and "none" otherwise.
+  </dd></p>
+  <p><dt><b>-v</b></dt>
+  <dd>Show the game, kernel and acdc version numbers and exit.
+  </dd></p>
+  <p><dt><b>-h</b></dt>
+  <dd>Print command line usage summary appropriate to the mode of
+      the executable's build.
+  </dd></p>
+
+  <p>In addition, some options are only meaningful in the console
+  display mode, and are simply ignored in other modes.</p>
+
+  <p><dt><b>-j[{0|1}]</b></dt>
+  <dd>Set text mode to wrap (0) or justify (1). If no value is
+      specified, invert the default A-code setting for this game.
+      In wrap mode, text is simply broken into lines according
+      to the screen width (see the -s option below). With
+      justification turned on, each line is right-justified.
+      All of this presupposes a fixed font being in use. For
+      variable font devices, which tend to do their own
+      wrapping, the default screen width should be set to zero,
+      meaning "infinite", and the margin should be specified as
+      zero too. This option is ignored by games written in the 
+      "old style" A-code (i.e. by adv550).
+  </dd></p>
+  <p><dt><b>-s&lt;W&gt;.&lt;H&gt;[.&lt;M&gt;]</b></dt>
+  <dd>Set screen size (width in fixed font characters, height
+      in lines, and margin in fixed font blanks).
+      The default screen dimension is 80x24-1, the margin
+      being set to 1 character. The -s option allows a
+      different screen size (and optionally margin) to be 
+      specified. Screen width of zero means "infinite" width.
+      Note that the line length cannot be set to less than
+      16 characters and the minimal number of lines per
+      screen is 5.
+  </dd></p>
+  <p><dt><b>-o&lt;baudrate&gt;</b></dt>
+  <dd>Set the output speed as specified by the <baudrate>
+      argument. Meaningful only in the "dumb" console mode and
+      only if C sources compiled without the NO_SLOW symbol.
+      Baud rate is specified in bits per second, and taking
+      into the account control and parity bits, the output
+      speed in characters per second is simply the baud rate
+      divided by 10. The game coerces the specified baud
+      rate to the nearest lower standard value (one of
+      110, 300, 600, 1200, 2400, 4800 and 9600), except
+      that anything below 110 (the speed of a teletype) is
+      also treated as 110. The default value is 300 - the
+      speed of a DECwriter. Note, however, that under DOS
+      and Windows any baud rate above 600 results in no
+      slowdown at all.
+  </dd></p>
+  <p><dt><b>-p[{0|1}]</b></dt>
+  <dd>Pause on exit.
+      Requests that after printing the final exit message
+      the game should prompt the player for a &lt;CR&gt;, before exiting.
+      This feature is intended for players who wish to
+      play console version of the game, in a window which
+      closes as soon as the game exits.
+  </dd></p>
+</dl>
+
+<p>The functionality of the <b>-s</b>, <b>-u</b> and
+<b>-j</b> options is also provided via kernel hooks (see
+procedure special() in the kernel source file adv00.c), so that the game
+may -- at author's discretion -- offer the player commands for toggling
+the justification switch, switching on and off the change history, and
+altering screen size and margin.  </p>
+
+<p>Finally, if the game was build to have a separate data file
+(only useful for DOS builds, nowadays),
+a non-default location of that file may be specified via the -d
+option.</p>
+
+<dl>
+  <p><dt><b>-d&lt;dbsdir&gt;</b></dt>
+  <dd>If using a data file, specify its directory.
+      Ignored if the game is built as a simple executable
+      with no associated data file.
+      By default, the game data file is assumed to live in
+      the same directory as the executable. The -d option
+      allows a separate location to be specified. The
+      program will attempt to work out the separator
+      which should follow the directory name, but if in doubt
+      as to the appropriate one for the given platform,
+      the dbs name will be simply concatenated with the
+      supplied pathname -- hence if it doesn't work, try
+      adding the trailing separator to the pathname.
+  </dd></p>
+</dl>
+
+<p>Any unknown or suppressed keywords are quietly ignored.</p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

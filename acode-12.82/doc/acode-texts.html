@@ -1,0 +1,1063 @@
+<html>
+<head>
+<title>A-code texts</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code texts explained</h2>
+
+<p>A-code texts are de facto objects with their own methods, making them
+into a far more powerful and flexible game component than in any other
+IF system. Yet they can be treated also as simple text strings &ndash;
+the complexity of &quot;text morphing&quot; is there to be used, but it
+does not force itself onto game writers.</p>
+
+<p>This document explains A-code texts and their handling as of A-code
+version 12.82.</p>
+
+<hr id=TOP>
+<h3>Contents:</h3>
+
+<ul>
+
+<li><a href="#GNS">General notes on style</a></li>
+
+<li><a href="#ATB">A-code text basics</a></li>
+<li><ul>
+  <li><a href="#ATD">A-code text declaration</a></li>
+  <li><a href="#BTD">Basics of text definitions</a></li>
+  <li><a href="#ILT">In-line texts</a></li>
+  <li><a href="#CT">Centered text</a></li>
+  <li><a href="#TPP">Text post-processing</a></li>
+</ul></li>
+
+<li><a href="#ATM">A-code text-morphing features.</a></li>
+<li><ul>
+  <li><a href="#TSD">Text switches defined</a></li>
+  <li><a href="#SEQ">Simple text switches, explicitly qualified</a></li>
+  <li><a href="#RTSE">Repeated text switch elements</a></li>
+  <li><a href="#WVH">Word and value holders</a></li>
+  <li><a href="#SIQ">Simple implicit qualifiers</a></li>
+  <li><a href="#DIQ">Dynamic implicit qualifiers</a></li>
+  <li><a href="#QHI">Switch and holder interplay</a></li>
+  <li><a href="#TT">Text tying</a></li>
+  <li><a href="#NT">Text nesting</a></li>
+</ul></li>
+
+<li><a href="#THP">Appendixes</a></li>
+<li><ul>
+  <li><a href="#THP">Appendix A: A-code text-handling primitives</a></li>
+  <li><a href="#SCH">Appendix B: Special characters in text definitions</a></li>
+  <li><a href="#HAT">Appendix C: Handling anonymous texts (deprecated!)</a></li>
+</ul></li>
+</li>
+</ul>
+
+<hr id=GNS>
+<h3>General notes on style</h3>
+
+<ul>
+<li>The use of upper/lower case in the examples is purely my programming
+convention; except within text definitions, A-code is case
+insensitive.</li>
+<li>The use of dots to separate words in A-code entity names is also
+conventional; any other convention could be used, e.g. using dashes or
+underscores instead of dots, or (not recommended!) uppercasing the first
+letter of each word.</li>
+<li>The use of commas as A-code
+statement parameter separators is purely optional, for increased
+readability; A-code counts commas to be white spaces.</li>
+<li>All examples use the up-to-date A-code notation (A-code 12), which differs in
+some respects from that in the original version of the language by Dave Platt.</li>
+</ul>
+
+<hr id=ATB>
+<h2>A-code text basics</h2>
+
+<p>This part of the document deals with the basics of A-code text declaration and use.</p>
+
+<hr id=ATD>
+<h3>A-code text declarations</h3>
+
+<p>As of version 12, in-line texts are also permitted (see the 
+<a href="#ILT">in-line-text section</a>), but traditionally A-code defines
+all its texts (other than place and objects descriptions) as separate
+named entities. The basic A-code text declaration has the form</p>
+
+<pre>
+   TEXT &lt;text_name&gt;
+      &lt;some_lines_of_text&gt;
+</pre>
+
+<p>Like all major A-code directives, the keyword TEXT must be at the very
+beginning of a line. The text lines following it must all have at least
+one leading blank. The declaration is terminated by a line with a
+non-blank first character (i.e. another major directive or a comment),
+or by end-of-file.</p>
+
+<p>While generally line breaks are ignored in the text definition (see
+the next section for more details), any texts declared using the TEXT 
+directive are deemed to have a trailing end-of-line. A text fragment,
+without the trailing EOL can be declared using the FRAGMENT variant of a
+text declaration:<p>
+
+<pre>
+   FRAGMENT &lt;text_name&gt;
+      &lt;some_lines_of_text&gt;
+</pre>
+
+<p>Here is a simple, purely artificial example:</p>
+
+<pre>
+   FRAGMENT LINE.START
+      This line is sp
+   TEXT LINE.END
+      lit into two parts.
+</pre>
+
+<p>When displayed by the A-code primitive SAY</p>
+
+<pre>
+   say line.start
+   say line.end
+</pre>
+
+<p>The result is a single line "This line is split into two parts."
+followed by a line break.</p>
+
+<p>Both TEXT and FRAGMENT directives can be used to declare
+&quot;anonymous&quot; texts by omitting the text name. This practice goes back
+to Dave Platt's original version and is now deprecated -- text switches can be
+used instead. See <a href="#HAT">Appendix C</a> on handling anonymous
+texts.<p>
+
+<hr id=BTD>
+<h3>Basics of text definitions</h3>
+
+<p>A-code text definitions (the lines of text following the TEXT or
+FRAGMENT declaration line), are processed as follows:</p>
+
+<ul>
+<li>
+Any leading or trailing spaces on an individual line are removed.
+</li>
+<li>
+Simple line breaks (i.e. single end-of-line characters) are replaced
+with a space, <i>after</i> the removal of trailing characters. (But see the
+below discussion of <a href="#TSD">text switches</a> for an exception to this rule.) 
+</li>
+<li>
+Successive line breaks are reduced to two line breaks. I.e. successive
+blank lines are reduced to a single blank line
+</li>
+<li>
+If after the removal of leading spaces, a line starts with a forward
+slash, the slash is removed; the only purpose of this arrangement is to
+be able to force a line to start with some leading spaces after all, or
+to force multiple successive blank lines.
+</li>
+<li>
+The reverse slash character <b></b> is used as a logical escape, to
+enable the display of characters with a special meaning (see 
+<a href="#SCH">Appendix B</a>).
+The reverse slash itself can be escaped, of course, if it needs to be
+displayed as an ordinary character.
+</li>
+<li>
+All unescaped underscores are converted into spaces. This is another
+mechanism for forcing leading spaces in a line of text.
+</li>
+</ul>
+
+<hr id=ILT>
+<h3>In-line texts</h3>
+
+<p>In-line texts are accepted in all circumstances in which a reference
+to a named text is acceptable. The basic syntax is extremely simple. If
+a string beginning with a double quote is encountered where a text name 
+would be appropriate, everything (line feeds included!) up to the next
+double quote is accepted as the desired text.</p>
+
+<p>The <b>acdc</b> translator in fact declares a standard A-code text,
+assigns an automatically generated name to it, and replaces the whole
+quoted string with that name. The upshot is that <i>all</i> text
+features described in this document apply to in-line texts as well.</p>
+
+<p>There is an additional syntax wrinkle to permit in-line texts to
+be text fragments and to permit them to have their own internal
+dynamics, as described in the <a href="#DIQ">dynamic implicit qualifiers
+section</a> further in this document.</p>
+
+<p>If an in-line text starts with the colon character <b>:</b> followed
+by a character one of <b>i</b>, <b>c</b>, <b>r</b> or <b>f</b>, followed
+by another colon, the character between the two colons gives the text a
+special property.  If the character is <b>f</b> (&quot;:f:&quot;) then
+the text is deemed to be a fragment, without a trailing line feed.  The
+other three character declare the text dynamic method to be one of
+<i>increment</i>, <i>cycle</i> or <i>random</i>, as explained in the
+dynamic explicit qualifiers section below.</p>
+
+<p>Since fragment texts may also have their own dynamic methods, this
+additional syntax may be repeated as e.g. &quot;:f:c:&quot; or 
+&quot;:r:f:&quot; etc.</p>
+
+<p><b>WARNING</b> While in-line texts are convenient, they should be avoided
+if one wishes to preserve upward compatibility of saved games. (See a <a
+href="acode-upward.html">separate document on upward
+compatibility in A-code</a>.)</p>
+
+<hr id=CT>
+<h3>Centered text</h3>
+
+<p>A text definition line beginning with the plus character <b>+</b> is treated
+as a line to be separately centered on the display. The plus sign is
+stripped off, and the line is prefixed with a line break (unless it
+happened to be preceded with one) and a line break is appended to it.
+The result is displayed centered.</p>
+
+<p>A-code also understands &quot;block centering&quot;. A centered block
+is a set of successive text definition lines, each of which is prefixed
+with the equals character <b>=</b>. The equals signs are stripped off,
+and the whole block is displayed offset to the right in such a way that
+its longest line appears centered on the display.</p>
+
+<p>As with individual line centering, the block is prefixed by a line
+break if one is required (i.e. there wasn't one already), and suffixed
+with a line-break. Ends of line within the centered block are also
+honoured, contrary to the more general A-code convention.</p>
+
+<p>Here is an artificial example showing both kinds of centering:</p>
+
+<pre>
+   TEXT CENTERING.EXAMPLE
+      This text shows
+     +a centered line
+     +and another centered line,
+      as well as
+     =a whole block
+     =of lines, all of which
+     =are centered as a single unit.
+     Which is sometimes useful.
+</pre>
+
+<p>If displayed (e.g.) in a fixed font on an 78-character wide display by</p>
+
+<pre>
+   say centering.example
+</pre>
+
+<p>this would result in</p>
+
+<pre>
+   --------------------------------------------------------------------------------
+   |  This  text shows                                                            |
+   |                               a centered line                                |
+   |                          and another centered line,                          |
+   |  as well as                                                                  |
+   |                         a whole block                                        |
+   |                         of lines, all of which                               |
+   |                         are centered as a single unit.                       |
+   |  Which is sometimes useful.                                                  |
+   --------------------------------------------------------------------------------
+</pre>
+
+<hr id=TPP>
+<h3>Text post-processing</h3>
+
+<p>A-code texts are not displayed to the player immediately. They are
+accumulated instead in an internal, dynamically sized buffer. The
+contents of this buffer are post-processed and displayed by the kernel
+when either a command prompt is issue to the player, or the game is 
+about to exit. This permits some A-code directives to affect previously
+output text.</p> 
+
+<p>For example the <b>resay</b> directive, instead of appending
+its text to the output buffer, first empties the buffer so that its text
+completely replaces anything accumulated so far. On the other hand the
+<b>append</b> directive preserves the accumulated text, but strips from
+it any terminating blank lines, effectively appending its text to the
+last output paragraph.</p>
+
+<p>The A-code kernel processes the accumulated buffer before displaying its
+contents, e.g. by normalising any successive blank lines to a single
+blank line. (Multiple blank lines may be magicked up by using the
+non-breaking space character &ndash; see the list of special characters
+in <a href="#SCH">Appendix B</a>.</p> 
+
+<hr id=ATM>
+<h2>A-code text-morphing features</h2>
+<p>This part of the document describes the &quot;text-morphing&quot;
+features of A-code texts.</p>
+
+<hr id=TSD>
+<h3>Text switches defined</h3>
+
+<p>A text switch is effectively an indexed array of strings
+embedded in a text message. More
+than one text switch can be embedded in a single text, and on the other
+hand, a whole text may consist of a single text switch.</p>
+
+<p>Formally, a text switch is a sequence of arbitrary text strings
+separated by forward slashes, with the whole sequence being enclosed in
+square brackets. E.g. </p>
+
+<pre>
+   [None/One/Two/Many]
+</pre>
+
+<p>is an example of a simple text switch of four elements.</p>
+
+<p>The idea is that when the whole message is displayed to the player,
+just one element from every given switch is selected for display,
+according to some rule. The selection is made by using some
+&quot;qualifier&quot; value as the index of each text switch array
+encountered in the message.
+Text switch elements are indexed from zero upwards, so that in the
+above example the element <b>None</b> has the index value of zero, while
+the element <b>Many</b> has the index value of three.</p>
+
+<p>While ends of lines are treated in A-code text definitions as white
+spaces (just like, for example in HTML), an end of line immediately
+following a text switch separator character <b>/</b> is simply ignored,
+which conveniently allows text switches to be spread across several
+lines.  E.g.  the above shown switch could have been equivalently
+written as</p>
+
+<pre>
+   [None/
+    One/
+    Two/
+    Many]
+</pre>
+
+<p>because A-code ignores any line-leading (and line-trailing) spaces in text
+definitions.</p>
+
+<hr id=SEQ>
+<h3>Simple text switches, explicitly qualified</h3>
+
+<p>This text morphing feature was introduced by Dave Platt to handle
+messages such as the report of dwarf attacks on the player.  Here's the
+definition of a text called <b>knives.thrown</b> and containing two text
+switches:</p>
+
+<pre>
+   TEXT KNIVES.THROWN
+       [/One/Two/Three/Four/Five/Six/Seven/Many] nasty sharp kni[/fe is/ves are] thrown at you!
+</pre>
+
+<p>This is displayed by an A-code text-handling language primitive SAY:</p>
+
+<pre>
+   say &lt;text_name&gt;, [&lt;explicit_qualifier&gt;]
+</pre>
+
+<p>or in this specific case</p>
+
+<pre>
+   say knives.thrown, thrown
+</pre>
+
+<p>The second parameter (&quot;thrown&quot;) is in this case the name of a variable
+holding the number
+of knives thrown at the player, though from the point of view of the
+language syntax, it could be a constant, or any A-code entity possessing
+a value (e.g. an object or a location). In the absence of an implicit qualifier
+(to be explained later),
+this value is used to index any text switches embedded in the text
+supplied as the 1st parameter, where switch elements are counted from
+zero. So, if one knife is thrown, the displayed message will read:</p>
+
+<pre>
+   One nasty sharp knife is thrown at you!
+</pre>
+
+<p>But suppose more than one knife is thrown, say 5 of them. The first
+switch is unproblematic -- its index values go from 0 to 8 -- but the
+second switch only has elements 0, 1 and 2. This is handled by the
+primary rule of text switches: <em>use the index value nearest to the
+qualifier value</em>. So the message becomes:</p>
+
+<pre>
+   Five nasty sharp knives are thrown at you!
+</pre>
+
+<p>While in this example, the explicit qualifier was supplied as a
+variable, any A-code entity which has a value associated with it (e.g.
+an object, or a location, or a plain numeric constant) is also
+acceptable as an explicit qualifier.</p>
+
+<hr id=RTSE>
+<h3>Repeated text switch elements</h3>
+
+<p>In practice, text switch elements can be long, multi-line strings,
+and sometimes it is necessary to have some of the elements repeated. For
+example, if a player has a purse which can contain some coins, its
+contents could be described by the following text:</p>
+
+<pre>
+   TEXT PURSE.CONTAINS
+      There [are/is/are] 
+      [no/one/two/three/several/several/several/several/several/several/many]
+      coin[s//s] in the purse.
+</pre>
+
+<p>Such repetition is clearly wasteful, as well as tiresome, and the
+maintenance of switches with repeat elements is unnecessarily complex,
+because any changes to the repeated elements need to be applied to each
+of them.</p>
+
+<p>To get around this, A-code interprets a switch element consisting of
+the single character <b>=</b> to mean a repeat of the immediately
+preceding element. This in turn may have the same special format, in which
+case its preceding element is considered. For obvious reasons, the first
+(zero index) element of a switch may not be a repeat element.</p>
+
+<p>Using this convention, the above PURSE.CONTAINS text could be defined
+as</p>
+
+<pre>
+   TEXT PURSE.CONTAINS
+      There [are/is/are] [no/one/two/three/several/=/=/=/=/=/many]
+      coin[s//s] in the purse.
+</pre>
+
+<p>When qualified by an actual number of coins, this would specify the
+number as <em>several</em> for 4 to 9 coins and as <em>many</em> for any
+more than that.</p>
+
+<hr id=WVH>
+<h3>Word and value holders</h3>
+
+<p>A-code texts can also contain word and value place-holders, which get
+replaced dynamically at run-time by words or values specified by the
+explicit qualifier. Place-holders of either kind can occur both outside
+and inside text switches.</p>
+
+<p>The dollar sign <b>$</b> is used as a value place-holder. If an
+unescaped dollar sign is encountered in a text to be displayed, and if
+the text is used with an explicit qualifier, the dollar is replaced with
+the numerical value of the qualifier. For example, the
+PURSE.CONTAINS text defined in the last section, could be re-defined as</p>
+
+<pre>
+   TEXT PURSE.CONTAINS
+      There [are/is/are] [no/$] coin[s//s] in the purse.
+</pre>
+
+<p>In this case, the A-code statement</p>
+
+<pre>
+   say purse.contains, 13
+</pre>
+
+<p>would result in the display of</p>
+
+<pre>
+   There are 13 coins in the purse.
+</pre>
+
+<p>Of course, as before, any A-code value-bearing entity (variable,
+location, object...) could be used as a qualifier, instead of a
+constant value.<p>
+
+<p>A word place-holder is signalled by an unescaped hash sign <b>#</b>, and
+is conceptually similar, except that a word, rather than a value, indicated
+by the explicit qualifier is inserted in place of the hash sign. Just
+what can be used as an explicit qualifier in this case, is a bit more complicated.</p>
+
+<p>All declared vocabulary terms obviously have one (or more, if there
+are synonyms) actual word associated with them.  At the author's
+discretion, most objects and possibly some locations will also have an
+associated vocabulary word or words.  In all these cases there
+will be a &quot;primary&quot; word -- the first one declared
+in the list of synonyms (if there are any synonyms).  It is this primary
+word that gets inserted in place of a word place-holder.</p>
+
+<p>All of this is easier to understand on some practical illustrations. Take for
+example the object chair1 with the associated nouns &quot;chair&quot; 
+and &quot;seat&quot;. Should there be a text declared as</p>
+
+<pre>
+   TEXT NO.KILL.THINGS
+      The # is not something mortal, so cannot be killed!
+</pre>
+
+<p>and an object declared as</p>
+
+<pre>
+   OBJECT -CHAIR1, CHAIR, SEAT
+</pre> 
+
+<p>where the name CHAIR1 is explicitly excluded from the player's vocabulary,
+then the statement</p>
+
+<pre>
+   say no.kill.things, chair1
+</pre>
+
+<p>would produce</p>
+
+<pre>
+   The chair is not something mortal, so cannot be killed!
+</pre>
+
+<p>What makes this much more useful than may appear at the first glance, is
+the fact that A-code variables may store either values <b>or</b>
+pointers (references, to you Algol fans!) to arbitrary A-code entities.
+Hence if the game code executes somewhere the statement</p>
+
+<pre>
+   lda target, chair1         # Point variable TARGET at object CHAIR1
+</pre>
+
+<p>where &quot;target&quot; is a variable name, then a subsequent
+statement</p>
+
+<pre>
+   say no.kill.things, target
+</pre>
+
+<p>will produce exactly the same display text as if the object
+&quot;chair1&quot; or just the simple noun &quot;chair&quot; were used
+as the explicit qualifier.</p>
+
+<p>Word place-holders really come into their own because the
+mandatory A-code variables ARG1 and ARG2 hold respectively the verb and
+the noun of the player's last command. So assuming that the player said
+&quot;KILL CHAIR&quot;, then</p>
+
+<pre>
+   say no.kill.things, arg2
+</pre>
+
+<p>would once again tell the player that chairs are not for killing.</p>
+
+<p>However, there is a further subtlety here, when it comes to using player
+command words pointed at by the ARG1 and ARG2 variables, because in this
+case what is echoed as a part of the response is <em>not</em>
+necessarily the primary word associated with the referenced object, but
+the word actually used by the player (allowing for expansion of
+abbreviations, typo correction and vocabulary folding -- see a separate
+document on the full 3D structure of the 
+<a href="acode-vocabulary.html">A-code vocabulary</a>). So if the
+player typed &quot;KILL STO&quot; (note the abbreviation of STOOL to
+STO, assumed to be unambiguous in this example), the displayed response
+would be</p> 
+
+<pre>
+   The stool is not something mortal, so cannot be killed!
+</pre>
+
+<p>Word place-holders can also appear both within and without text
+switches, but we'll cover that somewhat later on, under the heading of 
+<a href="#QHI">switch and holder interplay</a>.
+
+<hr id=SIQ>
+<h3>Simple implicit qualifiers</h3>
+
+<p> Not all texts need explicit qualification. For example, any texts
+associated with objects or locations (i.e. various forms of object and
+location descriptions) are deemed to be implicitly qualified by the
+current state of the object or location -- i.e. by its current internal
+value.</p>
+
+<p>Take for example the object BATTERIES defined as</p>
+
+<pre>
+OBJECT BATTERIES, =BATTERY
+   [/Fresh/Worn-out] batteries
+  %[There is a pair of brand-new batteries in the goods tray./
+   There are fresh batteries here./
+   Some worn-out batteries have been discarded nearby.]
+  &The two batteries are just the right size and shape for the lamp.
+   Both are marked as "[BRAND-NEW/FRESH/WORN-OUT]" in
+   chunky [blue/green/red] letters.
+</pre>
+
+<p>which has the usual triplet of the inventory, ordinary and detailed
+descriptions. Each of these contains one or more text switches, which
+will get automatically qualified by the state of the object. So for
+instance, if the batteries are spent, the statement</p>
+
+<pre>
+   describe batteries
+</pre>
+
+<p>will display</p>
+
+<pre>
+   The two batteries are just the right size and shape for the lamp. Both are marked
+   as "WORN-OUT" in chunky red letters.
+</pre>
+
+<p>Similarly the INVENTORY command and the general LOOK command will
+display their appropriate descriptions qualifying the embedded text
+switches by the object's state.</p>
+
+<p>It is important to note that implicit qualifiers <em>always</em>
+override any explicit qualifiers -- a point which will have a great
+significance in the next section. For now it is sufficient to observe
+that</p>
+
+<pre>
+   describe batteries, 0
+</pre>
+
+<p>would be completely pointless.</p>
+
+<hr id=DIQ>
+<h3>Dynamic implicit qualifiers</h3>
+
+<p>As already noted elsewhere, A-code texts also carry an internal state
+(or value),
+initialised by default (like all A-code values) to zero. Note, however,
+that to avoid overriding explicit qualifiers in simple text switches,
+internal text states are only used as implicit qualifiers if a
+&quot;method&quot; for their manipulation is given as a part of the text
+definition. Formally, a full text definition looks like this:</p>
+
+<pre>
+   TEXT [&lt;method&gt;] &lt;text_name&gt;
+      &lt;line_of_text&gt; 
+      [....]
+</pre>
+
+<p>where &lt;method&gt; is one of <b>increment</b>, <b>cycle</b>,
+<b>random</b> and <b>assigned</b>. All of these have different effects.</p>
+
+<ul>
+<li>
+If the method specified is <b>increment</b>, then every time the text is
+displayed, its internal state is incremented by one, until it reaches
+the number of elements of the switch with most elements embedded in the text.
+Here is an example from Adv770:
+
+<pre>
+TEXT increment ONCE.IS.ENOUGH
+
+    [And thank goodness for that! /]I [/really /*really* /*REALLY* ]don't
+    know why you decided to go and get lost in that dark forest. Let's
+    say [once/twice/thrice/enough] is enough and not do it again, huh?
+</pre>
+
+This will automatically produce messages of increasing exasperation, as
+the value of the text tick up after every use, finally sticking at the
+value of 4.
+</li>
+
+<li>
+<p>The <b>cycle</b> method also causes the internal text state to increment
+by one, but the index value used by each individual switch within the
+text is the state value modulo the switch size, and the state gets reset
+to zero once it reaches the least common multiple of all switch sizes
+within that text.</p>
+
+<p>This is best demonstrated on a purely artificial example:
+
+<pre>
+   TEXT cycle DIGITS
+      [1/2] [1/2/3] [1/2/3/4]
+</pre>
+
+If used repeatedly, the state of this text will increment by one from zero to
+11 and then return to zero again and repeat the same cycle. In the
+process it will produce successive displays &quot;1 1 1&quot;, &quot;2 2 2&quot;, &quot;1 3 3&quot;,
+&quot;2 1 4&quot;, &quot;1 2 1&quot;, &quot;2 3 2&quot;, &quot;1 1 3&quot;, &quot;2 2 4&quot;, &quot;1 3 1&quot;, &quot;2 1 2&quot;, &quot;1 2 3&quot;,
+&quot;2 3 4&quot;, &quot;1 1 1&quot; etc...</p>
+
+<p>As you can see above, each of the switches cycles independently of
+the rest, yet only one text state value is driving the whole process.
+This is very useful in assembling automatically at run-time a wide
+variety of responses.</p>
+</li>
+
+<li>
+<p>The <b>random</b> method does what one would expect. After the text is
+displayed using its current state value, this value is reset at random
+to a value within the index range of the largest embedded text switch.
+The new value chosen is guaranteed to be different from the
+current one, so for switches with two components, this method acts
+exactly as the cycle one.</p>
+</li>
+
+<li>
+<p>The <b>assigned</b> method is really a pseudo-method in that it does not
+actually do anything, other than enabling the text value as an implicit
+qualifier. Without it, the internal text state is ignored by switch
+processing, and an explicit qualifier has to be supplied instead.</p>
+</li>
+</ul>
+
+<p>It should be noted that none of the above described methods, nor the
+&quot;null&quot; non-method (i.e. when no method is specified) preclude
+the state value to be assigned into a text or numerically manipulated and
+examined like any ordinary variable. So for example, taking the above
+defined DIGITS text, the statements</p>
+
+<pre>
+   say digits        # Internal state starts from 0!
+   add digits, 10    # It got incremented to 1, so will now be 11
+   say digits        # It's now 11 so will be reset back to zero
+   say digits
+</pre>
+
+<p>would result in &quot;1 1 1&quot, &quot;2 3 4&quot, &quot;1 1
+1&quot</p>
+
+<p>In-line texts can also have dynamic implicit qualifiers. If such
+a text starts with the colon character ':', followed by a letter,
+followed by another colon, these three characters are stripped off and
+a dynamic method is associated with the in-line text in question on the
+basis of the letter between the two colons: <b>i</b> for
+<i>increment</i>, <b>c</b> for <i>cycle</i>, <b>r</b> for <i>random</i>.
+Note that the absence of the <i>assigned</i> pseudo-method, on the
+grounds that there is no way for an in-line text to be referred to by
+the rest of the A-code source.</p>
+
+<hr id=QHI>
+<h3>Switch and holder interplay</h3>
+
+<p>Now that we have been through the details of implicit qualifiers, the
+interplay between text switches and place-holders can be stated very
+simply as two rules:</p>
+
+<ol>
+<li>
+Only explicit qualifiers are used when substituting for place-holders of
+either kind.
+</li>
+<li>
+For processing text switches, implicit qualifiers always override
+explicit qualifiers.
+</li>
+</ol>
+
+<p>This enables responses such as exemplified by the Adv770 text
+ITS.JUST.A:
+
+<pre>
+TEXT cycle ITS.JUST.A
+    It's just a #. [Nothing very remarkable about it/Not remarkable in
+    any way/Nothing special to it/The apt description is "unremarkable"].
+</pre>
+
+The typical use for this text is
+
+<pre>
+   say its.just.a, arg2
+</pre>
+
+which will replace the word place-holder in the text with the noun from
+the player's last command, while cycling in its successive uses through
+its embedded text switch.</p>
+
+<p>It may at first appear strange that implicit qualifiers are
+ignored in place-holder substitution, while explicit qualifiers are
+overridden by implicit ones for switch processing. However, this
+arrangement does exactly what is often wanted, because it makes it much
+more sensible to have place-holders within text switches. Again, an
+example from Adv770 is probably a good illustration:
+
+<pre>
+TEXT cycle NOCOMPRENDE.VERB
+    [My ignorance shames me, but I do not know what action might be
+    signified by "#"./Alas, my vocabulary is too limited to encompass "#".
+    Try some other verb?/Very remiss of me to be sure, but I've never
+    learned to "#"./To my shame, I have no idea what you mean by
+    "#"./"#"? Sorry, I don't what it means./I am afraid "#" is not a
+    verb I've ever learned./Ahem... "#" is not in my dictionary.
+    Would you care to re-phrase?/Regrettably, that is not something I
+    know how to do.]
+</pre>
+
+If the game fails to make sense of the player's verb, all it has to do
+now is
+
+<pre>
+   say nocomprende.verb, arg1
+</pre>
+
+thereby producing a wide variety of responses.</p>
+
+<p>As an aside, in practice I find that the <b>cycle</b> method is much
+more useful for this purpose than the <b>random</b> one. Contrary to our
+intuitive expectation, randomness tends to be non-uniform (i.e.
+&quot;clumpy&quot;) and hence
+requires a large number of options, if obvious repetitions are
+to be avoided.</p>
+
+<hr id=TT>
+<h3>Text tying</h3>
+
+<p>As already noted, A-code variables can be in fact pointers to other
+A-code entities. The same is true for internal values of A-code texts. A
+text can be &quot;tied&quot; to another value-bearing entity, thereby
+removing the need for the game code to explicitly
+ensure the text value stays in sync with the state of that other entity.</p>
+
+<p>In effect, tying texts to other entities is also a text "method" in
+that it activates the text's implicit qualifier (which in this case
+happens to be the value of the entity to which the text is tied).
+Because this additional text method is not purely internal to the text,
+there may be reasons for the tying to be performed dynamically within
+the game code. Hence tying is performed by means of an executable
+language statement, rather than in text declaration.</p>
+
+<p>Once again, an example may be of help.
+Adv770 has a quartz seal, which can have one of two states. If
+the player tries to examine the seal when it is not in his inventory, the
+game tells him the seal is too small and needs to be picked up. The
+actual wording of this admonition depends on the state of the seal,
+hence the game initialisation code contains the statement
+
+<pre>
+   tie pick.up.seal, seal
+</pre>
+
+This effectively ties the value of the text PICK.UP.SEAL to the value of the
+object SEAL. From now on, if the state of the object changes, the
+message displayed by
+
+<pre>
+   say pick.up.seal
+</pre>
+
+will automatically change to match, because PICK.UP.SEAL contains a
+two-component text switch.</p>
+
+<p>Yes, in this particular case one could use SEAL as an explicit
+qualifier:
+
+<pre>
+   say pick.up.seal, seal
+</pre>
+
+The seal example merely illustrates the technique. It is too
+simple to show the justification of that technique. The actual motivation
+for introducing text tying in A-code was provided by my efforts to
+resolve a highly complex problem of constructing a location description
+which depended on several independent factors. It is far too complex to
+be presented as an illustrative example.</p>
+
+<hr id=NT>
+<h3>Text nesting</h3>
+
+<p>Sometimes a number of separate messages (e.g. location descriptions)
+consist of a part which is common to them all, and another part which is
+specific to a given message (or group of messages). This can present
+maintenance problems (e.g. fixing a typo in <i>all</i> identical parts) and
+is also wasteful. A-code offers an alternative approach. The common
+message part can be defined as a separate text fragment (i.e. a text
+without a trailing end-of-line character), which can be
+&quot;nested&quot; within individual messages.</p>
+
+<p>An A-code message text may include the symbolic name of another text
+enclosed in unescaped braces (i.e. curly brackets): {<text_name>}. When
+the message is displayed, this construct gets replaced with the text
+indicated by the text name within the braces. The nesting mechanism is
+recursive, so the nested text may have further texts nested within it.</p>
+
+<p>Here's an example from
+Adv770, showing the declarations of the first six of the Adv550's ice
+tunnels. It uses double-level nesting.
+
+<pre>
+FRAGMENT INTRICATE.TUNNELS
+   You are in an intricate network of ice tunnels.
+#
+FRAGMENT ICE.DEAD.END
+   {INTRICATE.TUNNELS} The only exit is
+#
+FRAGMENT ICE.TUNNELS
+   {INTRICATE.TUNNELS} Exits lead
+#
+PLACE ICE.CAVE.1
+   {ICE.TUNNELS} north and west.
+#
+PLACE ICE.CAVE.1A
+   {ICE.DEAD.END} south.
+#
+PLACE ICE.CAVE.2
+   {ICE.TUNNELS} north, east and west.
+#
+PLACE ICE.CAVE.2A
+   {ICE.TUNNELS} north and south.
+#
+PLACE ICE.CAVE.3
+   {ICE.TUNNELS} north and east.
+#
+PLACE ICE.CAVE.3A
+   {ICE.DEAD.END} south.
+</pre>
+
+<p>Nested texts may have their own implicit qualifiers, of course. If
+the top level text is used with an explicit qualifier, this is passed on
+as an explicit qualifier to all nested texts, to any depth.</p>
+
+<p>As a special case, A-code also permits nesting of the ARG1 and ARG2
+variables, which are treated as the words actually typed by the player
+(possibly expanded from an abbreviated state, and typo-corrected). This
+is used, for example, as follows:
+
+<pre>
+   TEXT YOU.DO.IT
+      You {ARG1} the {ARG2}.
+</pre>
+
+If the player typed (e.g.) "G LAMP", and succeeded in picking up the lamp, 
+
+<pre>
+   say you.do.it
+</pre>
+
+would display "You get the lamp."</p>
+
+<hr id=THP>
+<h3>Appendix A: A-code text-handling primitives</h3>
+
+<dt><b>say</b> &lt;text_name&gt;, [&lt;qualifier&gt;]</dt>
+
+<dd>Display the named text with an optional explicit
+qualifier.<br>&nbsp;</dd>
+
+<dt><b>resay</b> &lt;text_name&gt;, [&lt;qualifier&gt;]</dt>
+
+<dd>Like <b>say</b>, but completely replaces any text output accumulated
+since the last prompt.<br>&nbsp;</dd>
+
+<dt><b>append</b> &lt;text_name&gt;, [&lt;qualifier&gt;]</dt>
+
+<dd>Like <b>say</b>, but strips off any end-of-line characters at the
+end of any text output since the last prompt, before displaying the
+named text.<br>&nbsp;</dd>
+
+<dt><b>quip</b> &lt;text_name&gt;, [&lt;qualifier&gt;]</dt>
+
+<dd>Like <b>say</b>, but having displayed the text, aborts all further
+processing and jumps to the top of the main loop (i.e.  equivalent to a
+<b>say</b> immediately followed by a <b>quit</b>).<br>&nbsp;</dd>
+
+<dt><b>respond</b> &lt;vocabulary_word&gt; [...] &lt;text_name&gt;,
+[&lt;qualifier&gt;]</dt>
+
+<dd>Like <b>quip</b> but executed conditionally -- only if the player's
+last command contained any of the listed vocabulary
+words.<br>&nbsp;</dd>
+
+<dt><b>smove</b> &lt;location&gt; &lt;text_name&gt;,
+[&lt;qualifier&gt;]</dt>
+
+<dd>An amalgam of <b>say</b> and <b>move</b>, equivalent to saying the
+specified text and then moving the player to the nominated
+location.<br>&nbsp;</dd>
+
+<dt><b>vocab</b> {&lt;object&gt;|&lt;place&gt;|&lt;verb&gt;}, {&lt;place&gt;}, {&lt;flag&gt;}, {&lt;text&gt;}</b></p> 
+
+<dd>This can be thought of as a wrapper for the SAY directive, which is
+used to display game's vocabulary in a context sensitive manner (e.g. 
+omitting any nouns referring to objects the player has not yet seen).
+See <a href="acode-vocabulary.html">a separate document</a> dealing
+with A-code vocabulary handling.</dd>
+
+</dl>
+
+<hr id=SCH>
+<h3>Appendix B: Special characters in text definitions</h3>
+
+<p>The following characters are have special meaning in text
+definitions, and have to be escaped with a reverse slash if they are to
+be displayed &quot;raw&quot;.</p>
+
+<dl>
+<dt><b></b> (reverse slash)</dt>
+<dd>A universal logical escape character. Any immediately following
+character other, including the reverse slash itself, but excluding
+end-of-line, is treated as a literal character with no special
+meaning.<br>&nbsp;</dd>
+<dt><b>$</b> (dollar)</dt>
+<dd>A value place-holder, replaced by the current value of the explicit
+qualifier<br>&nbsp;</dd>
+<dt><b>#</b> (hash)</dt>
+<dd>A word place-holder replaced by the primary word associated with the
+explicit qualifier.<br>&nbsp;</dd>
+<dt><b>/</b> (forward slash)</dt>
+<dd>If found as the first non-blank character on a line, the forward
+slash is ignored, but any blanks immediately following it are not
+stripped off. If found within a text switch, a forward slash delimits
+text switch components. Not special otherwise.<br>&nbsp;</dd>
+<dt><b>[</b> and <b>]</b> (square brackets)</dt>
+<dd>Signal the beginning and the end respectively of an embedded text
+switch.<br>&nbsp;</dd>
+<dt><b>{</b> and <b>}</b> (curly brackets or braces)</dt>
+<dd>Enclose the symbolic name of a nested text.<br>&nbsp;</dd>
+<dt><b><</b> and <b>></b> (angle brackets, or less-then and greater-then)</dt>
+<dd>These enclose HTML tags. All tags are quietly removed in non-HTML modes,
+echoed as they are otherwise.<br>&nbsp;</dd>
+<dt><b>+</b> (plus sign)</dt>
+<dd>If found as the first non-blank character of a line, signals an
+individually centered line. Not special otherwise.<br>&nbsp;</dd>
+<dt><b>=</b> (plus sign)</dt>
+<dd>If found  as the first non-blank character of a line, signals a line
+of a centered block. If found as the single character constituting a
+text switch component, represents a back reference to the previous
+component. Not special otherwise.<br>&nbsp;</dd>
+<dt><b>_</b> (underscore or underline)</dt>
+<dd>A forced blank, not removed by the line-trimming mechanism<br>&nbsp;</dd>
+</dl>
+
+<hr id=HAT>
+<h3>Appendix C: Handling anonymous texts (deprecated!)</h3>
+
+<p>Anonymous texts can be only handled through pointers. Count text
+declarations backwards from the anonymous text in question, until you
+come to a named text. The resulting count is the anonymous text's offset
+from that named text. Point a variable at that named text and then
+add the offset to the variable. The variable now points at your
+anonymous text and all A-code primitives which handle automatic
+indirection, will accept the variable as a reference to the anonymous
+text.</p>
+
+<p>Here's an example in the shape of a complete A-code test program:</p>
+
+<pre>
+   style A-code 12
+   TEXT FIRST.TEXT
+      First text
+   TEXT
+      Second text
+   TEXT
+      Third text
+   init
+      local ptr
+      lda ptr, first.text
+      add ptr,2
+      say ptr
+      stop
+   repeat
+</pre>
+
+It will print "Third text" and then stop. (NB: The repeat section is
+null, but the translator will complain if it is absent.)</p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

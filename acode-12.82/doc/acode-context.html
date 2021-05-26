@@ -1,0 +1,124 @@
+<html>
+<head>
+<title>The CONTEXT mechanism</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>The CONTEXT mechanism<br>or how to avoid use of QUERY</h2>
+
+<p>The way A-code is currently implemented, has one substantial disadvantage. 
+The two input directives (INPUT and QUERY) expect execution to proceed from
+the the point where they have been called, which is fine if the game
+executable takes care of its own main loop. However, in the single turn (CGI)
+and library modes, this is not the case. Input is obtained by other
+controlling software (e.g. by a PHP script, in the single turn mode) and there
+is no mechanism to return the game to the point at which an input directive
+is used. The problem is aggravated by the fact that it may make perfect sense
+to have multiple calls for input in a single pass through the main loop (e.g.
+get general command, if this command is SAVE without a name to save the game
+under, get the name; if there is already such a saved game, query whether it
+should be overwritten).</p>
+
+<p>In Platt's original A-code implementation as a virtual machine this would
+not have been a problem. One simply saved the state of the VM before returning
+control to the external software. Once the game code is re-invoked and
+supplied with the next command, the VM state is restored and execution
+proceeds as normal. Things are nowhere near as simple when a game is simply an
+executable (or a library) built from C sources.</p>
+
+<p>There are possible solutions, of course. The game could be split into two
+processes: one in charge of player communication and the other running the
+game's world. Indeed, that's how the browser mode build works, but this
+arrangement is not suitable for running in a third-party cloud.<p> 
+
+<p>The CONTEXT mechanism was my solution to this problem when implementing
+the original CGI-based implementation of Adv770 to be used by game's
+beta-testers. The idea is a simple one. The game can acquire query responses
+as a part of the main loop &ndash; it just needs to know that a question has
+been asked and specifically <i>what</i> question has been asked. Then having
+acquired player's input it can deal with it appropriately.</p>
+
+<p>At first glance, no kernel involvement is required for this to work, but
+there are reasons why it does have to be aware of this mechanism. Otherwise
+anomalies would arise in in e.g. orphan command word handling and the game
+persistence mechanism. Thus variable named CONTEXT is deemed to be special
+by the kernel. If it is set to zero, the next expected input is just a 
+general game command. If set to non-zero, however, an answer to a particular
+query is expected by the game.</p>
+
+<p>Here is a very simple example. First a trivial A-code program using
+QUERY:<p>
+
+<div class=indented><pre>
+style 12
+verb quit
+init
+repeat
+  input               # No initialisation
+  query "Really?_"    # The undesrore is a foced space
+    ifkey quit
+      say "Bye..."
+      stop
+    else
+      say "OK."
+    fin
+  else
+    say "If not, not."
+  fin
+  say "_"             # Add a blank line
+</pre></div>
+
+<p>And here is one possible equivalent using the CONTEXT variable instead of
+the QUERY directive:</p>
+
+<div class=indented><pre>
+style 12
+var context
+verb quit
+verb yes              # Any other query answer is deemed to be no
+init                  # CONTEXT automatically initialised to zero
+repeat
+  ifeq context, 0     # A general command is required
+    proceed
+  fin
+  save command        # Preserve player's original command
+  input               # Get query response
+  ifkey yes
+    restore command   # Restore the original command
+    ifkey quit        # And act on it if appropriate
+      say "Bye..."
+      stop
+    fin
+    say "OK."
+  else
+    say "If not, not."
+  fin
+  set context, 0      # Insure next loop is just a general command one
+  quip "_"            # Add a blank line
+repeat
+  input
+  set context, 1      # Signal query processing is needed
+  quip "f:Really?_"
+</pre></div>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

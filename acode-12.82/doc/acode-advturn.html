@@ -1,0 +1,113 @@
+<html>
+<head>
+<title>Library mode interface</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code library mode interface</h2>
+
+<p>Normally, A-code games drive their own main loop, but various app
+frameworks insist on taking this functionality over. To cater for
+implementations based on such frameworks, A-code kernel has a <i>library
+mode</i>. When compiled in this mode, instead of having main(), it has a
+function called advturn(), which takes as its sole character string argument a
+a request (e.g. a player's command), and returns as its value a pointer to the
+game's response.</p>
+
+<p class=centered>char *advturn(char *command)<p>
+
+<p>Examples of such builds are the emscripten-based HTML/JavaScript build
+of Adv770 and Brian Ball's iOS build of the same game. The 
+<a href='advbld.html'>advbld script</a> can be used to build test
+library mode versions of game executables. It uses the <i>libtest.c</i>
+wrapper provided with the kernel sources.</p>
+
+<p>At present, there is on important restriction on A-code games to be built
+using the library mode: they cannot use the QUERY directive. Reasons for this
+restriction , as well as a workaround, can be found in <a
+href="acode-context.html">a separate document describing the A-code CONTEXT
+mechanism</a>.</p>
+
+<p>The advturn function takes a character string as its single argument and
+returns a pointer to a character string. This pointer is maintained by the
+kernel and should not be manipulated by the calling code.</p>
+
+<p>Once the game is running, the argument string contains a game command
+obtained from the player and the returned pointer points to the game's
+response to that command. However, there are also other special values that
+the argument string can have:</p>
+
+<dl>
+
+<dt>&quot;_INFO_&quot;</dt>
+<dd>Requests game's info. The returned string contains game's name, version and
+date.</dd>
+
+<dt><br>&quot;_LIST_&quot;</dt>
+<dd>Requests the list of saved games separated with '|' (vertical bar) used as
+a separator. If there is a game-in-progress save, it heads the list under the
+name of the game prefixed with a dot (e.g. .adv770).
+</dd>
+
+<dt><br>&quot;_START_[{TEXT_|HTML_}]&quot;</dt>
+
+<dd>Requests a new game to be started. The optional &quot;TEXT_&quot; or
+&quot;HTML _&quot; force use of plain text or HTML output, as appropriate.
+The default is HTML.</dd>
+
+<dt><br>&quot;_RESUME_[{TEXT_|HTML_}]&quot;</dt>
+<dd>Requests the game-in-progress (if any) to be resumed. Text or HTML output
+can be nominated in the same manner as for _START_.</dd>
+
+<dt><br>&quot;_LOAD_[{TEXT_|HTML_}]&lt;save_name&gt;&quot;</dt>
+
+<dd>Requests the nominated saved game to be restarted. Here too,
+&quotTEXT_&quot; or &quot;HTML_&quot; can be used to force the desired
+output format, e.g. &quot;_LOAD_HTML_mygame&quot;.</dd>
+
+</dl>
+
+<p>Except for the above special cases, the argument string is interpreted as
+the player's next command to be processed by the game. The output string
+contains the full game's response, prefixed with a single character indicating
+the type of the response:</p>
+
+<ul>
+<li>'f' means this is the final response &ndash; the game is over</li>
+<li>'q' means the response is a query of some sort (not necessarily a yes/no
+one)</li>
+<li>'t' signals just ordinary text, which should be followed by a prompt
+before requesting player's next command</li>
+<li>'n' signals null response (this happens if the command string is null).
+The rest of the response is unchanged from the previous non-null command.</li>
+</ul
+
+<p>The default game output format is HTML, except for console mode builds
+where plain text is enforced. Paragraphs of plain text output are <b>not</b>
+split into separate lines &ndash; any wrapping, if required, has to be done by
+the calling code.</p>
+
+<p>The simple <i>libtest.c</i> wrapper program supplied with the A-code kernel
+sources provides an example of using the library mode.</p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

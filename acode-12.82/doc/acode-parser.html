@@ -1,0 +1,601 @@
+<html>
+<head>
+<title>A-code parser</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code command parsing</h2>
+
+<p>While all command examples in this document are given in the upper case for
+ease of visual identification, A-code parser is case-insensitive: all commands
+are automatically forced into lower case. </p>
+
+<ul>
+<li><a href=#where>Where and when parsing takes place</a></li>
+<ul>
+<li><a href=#query>The QUERY directive</a></li>
+<li><a href=#input>The INPUT directive</a></li>
+</ul>
+<li><a href=#core>Core parser operation</a></li>
+<ul>
+<li><a href=#simple>Simple commands</a></li>
+<li><a href=#compound>Compound commands</a></li>
+<li><a href=#matching>Identifying vocabulary words</a></li>
+<li><a href=#blanks>Treating blanks as command separators</a></li>
+<li><a href=#invert>Inverting verb/noun order</a></li>
+</ul>
+<li><a href=#additional>Additional parsing features enabled by game code</a>
+<ul>
+<li><a href=#again>Repeating commands</a></li>
+<li><a href=#special>Non-vocabulary &quot;nouns&quot;</a></li>
+<li><a href=#it>Handling IT</a></li>
+</ul>
+<li><a href=#codeenabled>Optional parsing features, available to game code</a>
+</li>
+<ul>
+<li><a href=#orphans>Orphan processing</a></li>
+<li><a href=#all>Handling collective nouns</a></li>
+<li><a href=#except>Using EXCEPT with collective nouns</a></li>
+</ul>
+</ul>
+
+<hr id=where>
+<h3>Where and when parsing takes place</h3>
+
+There is no separate A-code directive for player command parsing. Parsing
+takes place as an integral part of acquiring player input. There are two
+separate minor directives which do so: INPUT and QUERY. It is INPUT that does
+the heavy lifting. The much simpler QUERY directive is there merely as a
+convenience for asking yes/no questions. For reasons <a
+href="acode-context.html">explained elsewhere</a> it has to be avoided in
+A-code games, which are expected to be built in single-turn or library modes.
+
+<div class=indented>
+<hr class=dotted id=query>
+<h4>The QUERY directive</h4>
+
+<p>The QUERY directive is in fact one of the set of A-code conditionals. It
+takes as its single argument a text, which gets displayed as a prompt and
+expects yes or no in response. For example:</p>
+
+<div class=indented><pre>
+QUERY "Do you really mean it?"
+   SAY "It shall be done, boss!"    # Player said yes
+ELSE
+   SAY "Oh, OK. You had me worried there for a moment."   # Player said no
+FIN
+</pre></div>
+
+<p>Parsing is extremely primitive: any response starting with 'n' (or 'N') is
+taken to mean &quot;no&quot;, and any response starting with 'y' (or 'Y') is
+taken to mean &quot;yes&quot;. A null response is interpreted as
+&quot;yes&quot;. Any other response is rejected with &quot;<i>Eh? Do me a
+favour and answer yes or no! Which will it be?</i>&quot; (this text is at
+present hard-wired into the kernel). If the player still responds with
+something that cannot be interpreted as yes or no, the parser says
+&quot;<i>(OK, smartass... I'll assume you mean YES - so there!)</i>&quot;
+(also hard-wired) and returns true.</p>
+
+<hr class=dotted id=input>
+<h4>The INPUT directive</h4>
+
+<p>The INPUT directive is the one that acquires and parses player commands. It
+takes as its optional argument a text (or a variable pointing to a text),
+which is to be used as a prompt, instead of the default question mark followed
+by a space. The rest of this document is devoted to parsing done by INPUT.</p>
+
+<p>While the basic form of a player command has the simple &quot;&lt;verb&gt;
+&lt;noun&gt;" format, the parser can handle <a href="#compound">compound
+commands</a>, reducible to a series of simple command in the basic format.
+When a compound command is given, successive executions of the INPUT directive
+process the implied simple commands, one at a time.</p>
+
+<p>The result of parsing a simple command is delivered in three variables:
+ARG1, ARG2 and STATUS. ARG1 and ARG2 contain respectively refnos of the verb
+and the noun of the simple command parsed. The STATUS variable is set to the
+number of words in the command: one or two. For more detail see below, in the
+section on <a href=#matching>identifying vocabulary words</a>.
+
+</div><hr id=core>
+<h3>Core parser operation</h3>
+
+<div class=indented>
+
+<p>Conceptually, A-code command parsing has three separate components:</p>
+
+<ul>
+<li>Parsing that is performed by the INPUT directive regardless of the
+game code,</li>
+<li>Additional parsing features which are enabled by some particular
+entities being declared in the game code, and</li>
+<li>Optional parsing features made available by the kernel to A-code games.</li>
+</ul>
+
+<p>This section deals with core parsing features, which are not influenced
+by the game code.</p>
+
+<hr class=dotted id=simple>
+<h4>Simple commands</h4>
+
+<p>A command consists of one or more words (a.k.a. tokens), delimited by
+blanks (spaces) and/or commas (,) and/or dots (.) and/or semicolons (;). All
+leading and trailing blanks are ignored and multiple blanks are treated as a
+single blank.</p>
+
+<p>A simple player command has the verb or verb/noun structure. E.g.</p>
+
+<div class=indented>
+<pre>
+GET LAMP
+</pre>
+</div>
+
+<hr class=dotted id=compound>
+<h4>Compound commands</h4>
+
+<p>Compound commands can be constructed by joining simple commands by command
+delimiters. The parser recognises three such delimits, which are
+completely synonymous: a semicolon (;), a dot (.) or '&nbsp;then&nbsp;' (note
+that unlike the colon or the dot, the '&nbsp;then&nbsp;' delimiter must be
+surrounded by blanks, to make it into a separate token.</p>
+
+<p>Compound command may also feature object iteration: a verb followed by a
+list of nouns, separated by commas (,) or '&nbsp;and&nbsp;'. Again, the 
+surrounding blanks are mandatory for the latter form.</p>
+
+<p>Thus for example,</p>
+
+<div class=indented>
+<pre>
+GET LAMP AND KEYS THEN READ POSTER
+</pre>
+</div>
+
+is equivalent to
+
+<div class=indented>
+<pre>
+GET LAMP, KEYS. READ POSTER
+</pre>
+</div>
+
+<p>and is parsed as meaning</p>
+
+<div class=indented>
+<pre>
+GET LAMP
+GET KEYS
+READ POSTER
+</pre>
+</div>
+
+<p>In order to be maximally forgiving, the parser will also understand 
+some incorrect but unambiguous variants on this syntax. E.g. in
+'&nbsp;and&nbsp;then&nbsp;' (equivalent to ',.') the iteration delimiter
+is ignored. So</p>
+
+<div class=indented>
+<pre>
+GET LAMP AND KEYS AND THEN READ POSTER
+</pre>
+</div>
+
+<p>will have the obviously intended effect.</p>
+
+<hr class=dotted id=matching>
+<h4>Identifying command words</h4>
+
+<p>Individual command tokens are matched against the game's vocabulary.
+At game's discretion, the matching process may be</p>
+
+<ul>
+<li>restricted to exact matches, or</li>
+<li>permit minimal (automatically derived) abbreviations, or</li>
+<li>permit single
+typo correction &ndash; see the <a href='acode-vocabulary.html'>vocabulary
+description</a> for more details.</li>
+</ul>
+
+<p>See the <a href='acode-vocabulary.html'>A-code vocabulary description</a>
+for details of command words matching against game's vocabulary.</p>
+
+<p>If a simple command is parsed successfully, values of ARG1 and ARG2 are set
+to the refno values corresponding to the first and the second command token
+respectively. However, a further enhancement, if ARG1 value turns out to be in
+the range of object or location refnos, and ARG2 in the range of verb refnos,
+the two command words are swapped around. Thus, for example BIRD GET gets
+parsed as GET BIRD.</p>
+
+<p>An additional parsing feature is present for games of style 11 or higher.
+If no match is found for the second command word, the kernel still does not
+give up. It is possible that the player was trying to reference something
+mentioned in an object or place description, or in some response recently
+given to an earlier command. Every time some text is output, all of its words
+longer than 3 characters and not ending in "ing", are stored in a separate,
+temporary vocabulary. This vocabulary, which is re-initialised whenever the
+player changes location, is scanned for an exact match (no abbreviations or
+typos). If a match is found, this is still treated as a matching failure, but
+of a different kind, so that if desired, it can be treated differently by
+A-code source.</p>
+
+<p>If the parser fails to match a vocabulary word, the corresponding ARG1 or
+ARG2 variable is set to one of special pre-defined values:</p>
+
+<ul>
+<li>BADWORD &ndash; no match of any kind.</li>
+<li>AMBIGWORD &ndash; abbreviation matching gives a non-unique result &ndash;
+more than one vocabulary word could be meant.</li>
+<li>AMBIGTYPO &ndash; single typo matching gives a non-unique result.</li>
+<li>SCENEWORD &ndash; the match is not against the vocabulary by against
+the list of words used by the guide since the last change of location.</li>
+<li>BADSYNTAX &ndash; any other parsing failure.</li>
+</ul>
+
+<hr class=dotted id=blanks>
+<h4>Treating blanks as list or command separators</h4>
+
+<p>The verb SAY is treated by the parser as a special case in that spaces can
+be used instead of commas as in SAY FEE FIE FOE, which is treated as
+SAY FEE, FIE, FOE (which is equivalent to SAY FEE; SAY FIE; SAY FOE).</p>
+
+<hr class=dotted id=invert>
+<h4>Inverting verb/noun order</h4>
+
+<p>By default, in two word commands, the first command token is considered to
+be the verb and the second one as the noun, e.g. TAKE BOTTLE. However, if the
+first token is not likely to be a verb (being e.g. a place or an object) and
+the the second is identifiably a verb, the parser will automatically swap them
+around, making BOTTLE TAKE also a legitimate command.</p>
+
+</div><hr id=additional>
+<h3>Additional parsing features enabled by game code</h3>
+
+<p>Some functionality of the A-code kernel is only present if game source
+defines particular entites.</p>
+
+<div class=indented>
+<hr class=dotted id=again>
+<h4>Repeating commands</h4>
+
+<p>If game source declares the word AGAIN (possibly with some synonyms),
+commands can be repeated by using AGAIN as a verb. If used within a compound
+command it will repeat the last sub-command delimited by THEN (or a dot or a
+semicolon). If used on its own, it will repeat the whole of the player's last
+input, which may be a compound command (and may itself contain AGAIN on order
+to repeat its sub-command).</p>
+
+<p>So, for example:</p>
+
+<div class=indented>
+<pre>
+GET BUCKET.DRINK BUCKET. AGAIN
+</pre>
+</div>
+
+<p>is equivalent to</p> 
+
+<div class=indented>
+<pre>
+GET BUCKET
+DRINK BUCKET
+DRINK BUCKET
+</pre>
+</div>
+
+<p>whereas</p>
+
+<div class=indented>
+<pre>
+THROW AXE THEN GET AXE
+AGAIN
+</pre>
+</div>
+
+<p>is equivalent to</p>
+
+<div class=indented>
+<pre>
+THROW AXE THEN GET AXE
+THROW AXE THEN GET AXE
+</pre>
+</div>
+
+<hr class=dotted id=special>
+<h4>Non-vocabulary &quot;nouns&quot;</h4>
+
+<p>Sometimes it is not desirable to match player input against the games
+vocabulary at all. Saving and restoring games is an obvious example of this
+&ndash; players cannot be restricted to game's vocabulary for naming saved
+games. One could, of course, insist that SAVE and RESTORE do not take a save
+name as the second word of the command, but invoke instead a separate input
+routine, which takes the desired save name without any reference to the
+vocabulary. However, the same applies to any command which takes a numerical
+argument, e.g. specifying screen width or height in the console mode.<p>
+
+<p>Rather than having special code for handling such (and similar) exceptions,
+A-code's approach is to tag relevant verbs as &quot;special&quot;. In the
+absence of flag settings for vocabulary words (possibly to be rectified in the
+future), the solution is to groups declaration of such verbs between
+declarations of two pseudo-verbs: first.special and last.special. This works
+because (a) A-code allocates refnos (in a given entity category) in the order
+of declarations and (b) if prefixed with '-' these pseudo-verbs are
+themselves allocated refno, but are not added to the game's vocabulary. Here's
+an example based on Adv770:</p>
+
+<div class=indented><pre>
+# The next block are specials, not requiring validation of ARG2.
+#
+verb -first.special        # Mark the first one
+verb again, repeat, =r
+verb save, suspend, pause
+verb restore, load
+verb rest, wait            # In case players type REST MYGAME
+verb !length, =!line, =!width
+verb !scroll, =!screen, =!depth
+verb !margin, =!offset
+verb restart, initialise
+verb why
+verb please
+verb -last.special         # Mark end of special verbs
+#
+# End of verbs not requiring validation of ARG2.
+</pre></div>
+
+<p>The kernel is aware of the special significance of first.special and
+last.special and will automatically suppress validation of the second
+command word when parsing a command with any verbs defined as special in this
+manner. However,  a similar mechanism can be profitably used by A-code source.
+Here's another example from Adv770:</p>
+
+<div class=indented><pre>
+verb -first.direction
+verb north, =n
+verb northeast, =ne
+verb east, =e
+verb southeast, =se
+verb south, =s
+verb southwest, =sw
+verb west, =w
+verb northwest, =nw
+verb -last.compass.point
+verb up, =u, upward, ascend
+verb down, =d, downwards, descend
+verb -last.direction
+</pre></div>
+
+<p>This makes it easy to check for a command word being a direction</p>
+
+<div class=indented><pre>
+IFINRANGE ARG2, FIRST.DIRECTION, LAST.DIRECTION
+</pre></div>
+
+<p>or a compass point:</p>
+
+<div class=indented><pre>
+IFINRANGE ARG2, FIRST.DIRECTION, LAST.COMPASS.POINT
+</pre></div>
+
+<hr class=dotted id=it>
+<h4>Handling IT</h4>
+
+<p>Handling the indexical noun IT is fairly straightforward in A-code. One
+declares a dummy object of that name (with whatever synonyms may be deemed
+appropriate) and sets its value to be a pointer to an appropriate object.
+The value of IT should be set to a pointer to an object in the following
+situations:</p>
+
+<ul>
+<li>A player command explicitly names an object.</li>
+<li>Player's inventory gets listed and the list consists of a single
+object.</li> 
+<li>Objects in the current location get listed and the list consists of a
+single object.</li>
+</ul>
+
+<p>OTOH the value of IT should be probably cleared (set to zero) if either of
+the two kind of object list contain more than one item.</p>
+
+<p>If a player's command contains the word IT and the IT object has a non-zero
+value FAKECOM can be used to set ARG! or ARG2 (as appropriate) to pretend that
+the command explicitly named the object pointed at by IT.</p>
+
+<p>None of the above involves any special kernel functionality, so why is the
+matter even mentioned in this description of command parsing by the kernel?
+The reason is that there is one other situation which requires the value of IT
+to be modified, and that situation is handled by the kernel.</p>
+
+<p>If IT is declared as an object and the game source successfully uses the
+DEFAULT directive to select a default object, then IT is automatically set
+by the kernel to point at the object defaulted to.</p>
+
+</div>
+
+
+</div><hr id=codeenabled>
+<h3>Optional parsing features available to game code</h3>
+
+<p>Other features of the A-code kernel, which are also dependent on some
+entities being or not being defined in game source, do not take effect
+automatically, but have to be explicitly triggered by game code as and
+when appropriate.</p>
+
+<div class=indented>
+<hr class=dotted id=orphans>
+<h4>Orphan processing</h4>
+
+<p>If a player issues a single word command, which can be assumed to imply a
+a target object on an action (e.g. PUSH on its own, or KEYS ditto), the game
+can do better than just complain that not enough information has been given.
+If the A-code source declares PLS.CLARIFY as a flag, setting this flag on the
+automatic variable STATUS affect the way the next command gets parsed.</p>
+
+<p>If the next command also consists of a single word, the &quot;orphan
+processing&quot; mechanism comes into play. It combines this command with the
+preceding one-word one, so that the player does not have to repeat the
+previously typed word. On the other hand, if the next command consists of two
+words, it is parsed in the usual manner and the clarification request is
+ignored. The PLS.CLARIFY flag gets automatically unset in either case, so
+that it does not have to unset explicitly by the game's code.</p>
+
+<p> Here's an example of orphan processing in action:</p>
+
+<div class=indented><pre>
+? get
+What do you want me to get?
+? rod
+You get the rod.
+? rod
+What do you want me to do with the rod?
+? drop
+You drop the rod.
+?</pre></div>
+
+<p>The underlying code dealing with generic GET requests could look like
+this:</p>
+
+<div class=indented><pre>
+action get
+   ifeq status, 1
+      default portable            # Find default object flagged as portable
+      ifeq arg2, ambigword        # If more than one possible target
+         flag status, pls.clarify # Activate orphan processing
+         quip "What do you want me to {arg1}?"
+      fin
+......
+</pre></div>
+
+<p>The code for handling the drop command in the above example would have to
+come into play, once the game fails to find an action associated with the word
+ROD.</p>
+
+<div class=indented><pre>
+   call arg1                   # If arg1 has an essociated action, execute it
+   ifflag arg1, object         # We fell through, so presumably no such action
+      flag status, pls.clarify # Activate orphan processing
+      quip "What do you want me to do with the {arg1}?"
+   fin
+</pre></div>
+
+<hr class=dotted id=all>
+<h4>Handling collective nouns</h4>
+
+<p>The A-code language makes it easy for a game to permit use of collective
+nouns such as, for example, ALL or TREASURE. This is done by using the A-code
+directive DOALL before handling the verb to be applied to a collective noun.
+Here, for example is a very simple code to handle GET ALL:</p>
+
+<div class=indented><pre>
+action get
+#
+# Check for the command being GET ALL.
+#
+  ifkey all               
+    doall here, portable  # Sets up the &quot;do all&quot; loop
+  fin
+#
+# The rest is ordinary handling of GET
+#
+  ifeq status, 2          # Do we know what to get?
+    and
+  ifhere arg2             # Is the the object in the same place as the player?
+    and
+  ifflag arg2, portable   # Is the object portable?
+    apport arg2, inhand   # If so, relocate the object to player's possessions
+    quip "You {arg1} the {arg2}  # Report the action.
+  fin
+fin
+</pre></div>
+
+<p>The DOALL directive in the above example sets up the do all loop of
+command processing, with the effect of setting ARG2 to the first object
+matching the specified criteria (being both co-located with the player and
+flagged as portable), and sets the value of STATUS to 2. The effect of this is
+that the rest of ACTION GET code results in that object being picked up
+and the REPEAT code loop restarted (due to the use of QUIP instead of SAY
+when reporting the action).</p>
+
+<p>Because of the do loop being active, instead of prompting the player for the
+next command, the kernel constructs that command by taking the same verb (GET
+in our case) and combining it with the <i>next</i> matching object, if any.
+That command is again processed in the normal way. This continues until such
+time as there are no matching objects left, at which point the do all loop
+is terminated and the player prompted for a command.</p>
+
+<p>This is obviously a very simplistic implementation and various checks may
+be necessary, such as e.g. checking that the player has a spare carrying
+capacity for the next object to be picked up. Such checks cab be performed as
+appropriate using the IFDOALL directive, which executes its associated block
+of code if the do all loop is active. If needs be, the loop can be aborted by
+the FLUSH directive.</p>
+
+<p>TREASURE could be handled in a similar manner, assuming that in addition to
+being flagged as being portable (via the game-defined flag PORTABLE in the
+above example), it is also flagged as valuable by some other game defined
+flag.</p>
+
+<hr class=dotted id=except>
+<h4>Using EXCEPT with collective nouns</h4>
+
+<p>As a further enhancement of handling collective nouns, if EXCEPT is
+declared as a vocabulary word, the parser accepts an extension of the simple
+verb/noun command structure. Where a collective noun (e.g. ALL) is allowable
+as a command noun, it can be followed by EXCEPT (or a synonym thereof) and a
+list of entities to be exempt from the requested action. For example:</p>
+
+<div class=indented>
+<pre>
+DROP ALL EXCEPT LAMP AND KEYS THEN READ POSTER
+</pre>
+</div>
+
+<p>will be understood in a natural manner.</p>
+
+<p>This expanded syntax has to, of course, cater for the possibility of
+unregocgised words being given by the player in the
+list of exceptions. To do so, this syntax enhancement brings into existence
+the automatic variable ARG3. If a word in the exception list is not recogised,
+the do-all loop is aborted and ARG3 is set to an apropriate error code, and
+its associated word is the unrecognised word of the player's command. Here is
+an example of this kind of error handling in Adv770:</p>
+
+<div class=indented>
+<pre>
+   ifkey all
+      call shadow.shutup
+      ifeq arg3, badsyntax
+         quip no.except, arg3
+      fin
+      ifeq arg3, ambigword
+         quip tell.me.more, arg3
+      fin
+      ifeq arg3, badword
+         flush
+         quip nocomprende.object, arg3
+      fin
+      ifeq arg3, ambigtypo
+         quip is.it.a.typo? arg3
+      fin
+      ....
+</pre></div>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<html>
+<head>
+<title>A-code undo/redo</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code undo/redo facility</h2>
+
+<p>If the game defines UNDO as a verb, then the undo/redo A-code mechanism gets
+activated for that game. The REDO verb is then defined automatically, though
+it can be also defined by the game explicitly as a verb. In such
+circumstances, defining REDO as anything other than a verb is treated as an
+error. REDO can be used immediately after an UNDO command, to undo some or all
+of the UNDO.</p>
+
+<p>The general form of UNDO and REDO commands is as follows:</p>
+
+<p>verb UNDO [{|<number>|ALL|UNDO}<br>
+verb REDO [{|<number>|ALL}
+</p>
+
+<p>The default number of turns to undo or redo is one, though a specific
+number can be specified. ALL means just that &ndash; undo all collected turn
+history or undo all of the preceding UNDO. &quot;UNDO UNDO&quot; is equvalent
+to REDO ALL.</p>
+
+<p>Information on the effects of an UNDO/REDO command is returned by an
+automatic variable UNDO.STATUS, which may but need not be explicitly defined
+by the game's code. The variable is considered to have four automatically
+declared flags:</p>
+
+<dl>
+
+<dt><b>UNDO.INFO</b></dt>
+
+<dd>This flag is defined but not used by the kernel. It may be used by the
+game's code e.g. to enable or disable use of UNDO and REDO commands.
+</dd>
+
+<dt><br><b>UNDO.TRIM</b></dt>
+
+<dd>Set if requested number of turns has been trimmed. The value of
+UNDO.STATUS is ste to the actual number of turns undone or redone.</dd>
+
+<dt><br><b>UNDO.INV</b></dt>
+
+<dd>Set if inventory contents changed, so that the game can note the fact.
+There is no equivalent flag for change of location, because that can be
+checked by the game's code by preserving the HERE value in a local variable
+and then it with the value of HERE after the UNDO/REDO.</dd>
+
+<dt><br><b>UNDO.BAD</b></dt>
+<dd>Set if the UNDO/REDO is given an illegal argument.</dd>
+
+</dl>
+
+<p>Undo history is saved and restored as a part of game saving and restoring.
+However, should the game's number of objects, locations or global variables
+change, the undo history of games saved by an earlier version will be quietly
+ignored.</p>
+
+<p>Here is a simple example of using UNDO:</p>
+
+<div class=indented><pre>
+action undo
+  local uhere
+  set uhere, here       # Preserve value of HERE in a local variable
+  undo arg2             # Do the UNDO!
+  ifgt undo.status, 0   # Something got undone
+    ifflag undo.status, undo.trim
+      say "Cannot undo that many turns!"
+    fin
+    say "Turns undone: $n.", undo.status
+    ifne here, uhere
+      say "You have relocated!"
+    fin
+    ifflag undo.status, undo.inv
+      say "Your possessions have changed!"
+    fin
+    quit
+  else                  # Nothing undone
+    quip "Nothing happens."
+  fin
+</pre></div>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

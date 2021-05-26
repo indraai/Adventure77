@@ -1,0 +1,194 @@
+<html>
+<head>
+<title>A-code documentation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code documentation</h2>
+
+<p>
+  Though A-code is not by any stretch of imagination (and despite its virtues)
+  a popular IF language, you never know &ndash; the built-in browser mode,
+  plus the ability to create pure HTML/Javascript versions might attract a
+  brave soul or two. Hence this page.
+</p>
+
+<h3 class=centered>Contents</h3>
+
+<table class=centab><tr><td>
+<a href='#src'>A-code sources</a><br>
+<a href='#build'>Building games from source</a><br>
+<a class=indented href='#types'>Build types explained</a><br>
+<a class=indented href='#advbld'>Using bash <i>advbld</i> script</a><br>
+<a class=indented href='#running'>Running A-code games</a><br>
+<a class=indented href='#acdc'>Translating A-code into ANSI C</a><br>
+<a class=indented href='#cbuild'>Creating game executables from derived C sources</a><br>
+<a href='#language'>A-code language</a><br>
+<a class=indented href='#ref'>A-code 12 reference</a><br>
+<a class=indented href='#parser'>A-code parser</a><br>
+<a class=indented href='#texts'>A-code texts</a><br>
+<a class=indented href='#vocab'>A-code vocabulary handling</a><br>
+<a href='#deeper'>Diving deeper</a><br>
+<a class=indented href='#undo'>UNDO and REDO</a><br>
+<a class=indented href='#library'>Library mode interface</a><br>
+<a class=indented href='#context'>The context mechanism</a><br>
+<a class=indented href='#compat'>Upward compatibility of games</a><br>
+<a href='acode-history.html'>Finally, some history</a><br>
+</td></tr></table>
+
+<p>
+  Not included are a few things, which as a putative user you are expected to
+  provide on your own:
+  <ul>
+    <li>A text editor of your choice</li>
+    <li>An ANSI C compiler</li>
+    <li>And if you wish to try your hand in creating new games:
+      a dash of creative imagination.</li>
+  </ul>
+</p>
+
+<hr id=src>
+
+<h3 class=centered>A-code sources</h3>
+  Complete A-code system sources and documentation are supplied as a single
+  tarball (<a href='https://mipmip.org/acode/acode-12.82.tgz'
+  >mipmip.org/acode/acode-12.82.tgz</a>). Please see <a
+  href='acode-tarball.html'>the tarball description document</a> for
+  information on its contents.
+</p>
+
+<hr id=build>
+
+<h3 class=centered>Building games from source</h3>
+
+<p>
+  Firstly, let's deal with building runnable games from A-code source files
+  and the ways of running such games, once built.
+</p>
+
+<p id=types><b><a href="acode-builds.html">A-code build types explained</a></b><br>
+  Acode games can be built in five distinct ways: console, combined
+  browser/console, single-turn (for running in a cloud in a CGI, PHP or
+  similar wrapper), HTML/JavaScript and library test. This document explains
+  what all these build types are are and what they are for.
+</p>
+
+<p id=advbld><b><a href="advbld.html">Using the <i>advbld</i> script to build A-code
+  games</a></b><br> Since this file is a part of my A-code framework bundle,
+  you clearly have the <i>advbld</i> script installed. This document explains
+  how to use the script to build A-code games in various modes, so you don't
+  have to bother with the &quot;how&quot; of it.
+</p>
+
+<p id=running><b><a href="acode-comline.html">Running A-code games</a></b><br>
+  The A-code kernel understands a number of command line options, though some
+  of these need active support from the A-code source. E.g. adv550 does not
+  understand the name of a game save-file to restore being supplied on the
+  command line, and may land the player in limbo, with no source of light.
+</p>
+
+<hr>
+
+<p id=acdc>
+  If you cannot or do not wish to use the <i>advbld</i> script for building
+  games, here are a couple of document explaining how to do it in a more
+  &quot;manual&quot; manner.
+</p>
+
+<p><b><a href="acode-a-build.html">Translating A-code source into
+  compilable C code</a></b><br>To build an A-code game from its A-code sources
+  (files suffixed with .acd), you first have to use the <b><i>acdc</i></b>
+  translator to create derived C sources. This document explains how.
+</p>
+
+<p id=cbuild><b><a href="acode-c-build.html">Creating an executable from
+  derived C sources</a></b><br>Once you have created (or downloaded) derived C
+  sources of an A-code game, you are ready to create various modes of
+  executables. This document explains how. (See <a href="acode-builds.html">a
+  separate document</a> for an explanation of build modes.)
+</p>
+
+<hr id=language>
+
+<h3 class=centered>The A-code language</h3>
+
+<p id=ref><b><a href="acode-language.html">A-code 12 guide</a></b>
+  Explains the concepts of the language and provides a reference guide to its
+  components.
+</p>
+
+<p id=parser><b><a href="acode-parser.html">A-code parser</a></b><br>
+  This document describes A-code parser, which has some unusual features.
+</p>
+
+<p id=texts><b><a href="acode-texts.html">A-code texts</a></b><br>
+  This document explains the details of A-code texts in all their unique
+  glory. A minimal understanding of the A-code language is helpful but not
+  essential.
+</p>
+
+<p id=vocab><b><a href="acode-vocabulary.html">A-code vocabulary</a></b><br> This
+  document explains the unique aspects of A-code vocabulary handling.
+</p>
+
+<hr id=deeper>
+
+<h3 class=centered>Diving deeper...</h3>
+
+<p>
+  The next group of documents discusses some aspects of the language in a
+  greater depth.
+</p>
+
+<p id=undo><b><a href="acode-undo.html">The UNDO and REDO directives</a></b><br>
+  The A-code UNDO and REDO directives explained.
+</p>
+
+<p id=library><b><a href="acode-advturn.html">The library mode interface</a></b><br>
+  In the ADVLIB mode, the A-code kernel presents itself as a
+  function called <b>advturn</b>. This document describes its
+  functionality and calling sequence.
+</p>
+
+<p id=context><b><a href="acode-context.html">The CONTEXT mechanism</a></b><br> If an
+  A-code game is to run in a cloud, which is very useful for
+  beta-testing, it must not use the the QUERY directive. This
+  document explains how the CONTEXT variable can be used to avoid
+  use of QUERY. (The no-QUERY restriction may be removed in a future
+  version of A-code, in which case this page will become obsolete.)
+</p>
+
+<p id=compat><b><a href="acode-upward.html">Upward compatibility of saved
+  games</a></b><br>A-code is unusual in that with a little care a
+  game author can ensure that saved games are upward compatible and
+  can be loaded by later game versions. This document explains how.
+</p>
+
+<hr>
+
+<p>
+  Finally, some history... <b><a href="acode-history.html">A-code
+  history</a></b>
+</p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

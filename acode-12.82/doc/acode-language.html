@@ -1,0 +1,1837 @@
+<html>
+<head>
+<title>A brief summary of A-code</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A brief summary of A-code, version 12</h2>
+
+<p>A-code is the adventure-writing language developed by Dave Platt for the
+adv550 superset of the original Adventure, and subsequently developed by
+Mike Arnautov, in working on the adv660 superset and later on the adv770
+one.</p>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#intro">Introduction</a>
+<li><a href="#versions">A-code style and version numbering</a>
+<li><a href="#notation">A note on conventions and notation</a>
+<li><a href="#files">Source file naming</a>
+<li><a href="#structure">A-code program structure</a>
+<li><a href="#lexicals">A-code lexicals</a>
+<ul>
+<li><a href=#constants>Constants</a>
+<li><a href=#variables>Variables</a>
+<li><a href=#texts>Texts</a>
+<li><a href=#procs>Procedures</a>
+<li><a href=#places>Places</a>
+<li><a href=#objects>Objects</a>
+<li><a href=#words>Words (a.k.a. verbs, a.k.a. nouns)</a>
+</ul>
+<li><a href="#elements">Types of declared elements</a>
+<li><a href="#major">Major A-code directives</a>
+<ul>
+<li><a href=#pragmas>Pragmas</a>
+<li><a href=#header>Game info, a.k.a header directives</a>
+<li><a href=#declarations>Declarations</a>
+</ul>
+<li><a href="#automatic">Automatic and optional entities and flags</a>
+<li><a href="#minor">Minor A-code directives (a.k.a. opcodes)</a>
+<ul>
+<li><a href="#local">Local variables</a>
+<li><a href="#conditionals">Conditionals</a>
+<li><a href="#logicals">Logical operators</a>
+<li><a href="#iterators">Iteration</a>
+<li><a href="#flow">Execution flow control</a>
+<li><a href="#moving">Moving player and objects</a>
+<li><a href="#output">Generating and manipulating output</a>
+<li><a href="#arithmetic">Arithmetical operations</a>
+<li><a href="#randomisation">Randomisation</a>
+<li><a href="#refman">Refno manipulation</a>
+<li><a href="#flagging">Manipulating flags</a>
+<li><a href="#environment">Communicating with the machine environment</a>
+<li><a href="#saves">Saving and restoring (file, memory or command)</a>
+<li><a href="#debug">Debugging tools</a>
+</ul>
+<li><a href="#obsolete">Obsolete directives</a>
+<li><a href="#history">A-code history</a>
+</ul>
+
+<h2 id=intro>Introduction</h2>
+
+<p>A-code is not intended to be a general purpose programming language and its
+strengths lie in being tailored specifically for programming purely
+text-based interactive fiction games. Each game created with the A-code
+system is a stand-alone package, requiring no separate game
+engine/interpreter. As an added bonus, with a little care it is possible to
+ensure that any game saves are <a href="acode-upward.html">
+upward compatible</a> and thus can be used even
+after the game has been modified/extended (a feature of particular use in
+beta-testing!).</p>
+
+<p>The current implementaion of the language has only been used for writing
+extensions of the original Adventure, and hence its parser is limited to
+dealing with commands which can be reduced to (a series of) verb/noun
+commands. (See <a href="acode-parser.html">a separate document</a> on the
+current A-code parser.)</p>
+
+<p>On the positive side, that imlpementation is fully internationalised and
+allows games to be written in languages and character sets other than
+English/Latin.</p>
+
+<p>Technically, A-code is a Polish notation (i.e. "prefix", or "operator
+[argument [...]]") language, so its statements take the form of, e.g.
+"set door, oiled".</p>
+
+<p> The original version by Dave Platt was organised
+as a "munger", translating A-code source into tokenised pseudo-binary, and an
+interpreter, interpreting the pseudo-binary at run time. This was an
+economical arrangement, but as versions grew in size, its performance on a
+multi-user machine gradually became less satisfactory. (We are talking mid-80s
+here! :-))</p>
+
+<p>This is why the current implementation of A-code takes a different route. It
+consists of an A-code to C translator (".acd -&gt; .c" or just acdc!) and a C
+kernel which gets compiled and loaded with the translated code. The overall
+size of the program is larger, but the performance is very much better.</p>
+
+<p>Now that computer speeds have increased dramatically, it would probably
+make sense to replace this translation-based implementation with a virtual
+machine, akin to Platt's original implementation.</p>
+
+<hr><h2 id=versions>A-code style and version numbering</h2>
+
+<p>The current version of A-code departs in some significant ways from Platt's
+originalversion of the language, but maintains full backward compatibility
+with it. This is achieved by an optional explicit declaration via the STYLE 
+directive of the major version number of A-code being use by game source. The
+significance of the major A-code version in save game compatibility.</p>
+
+<ul>
+<li>Style 1 is Dave Platt's original A-code of Adv550</li>
+<li>Style 2 is Make Goetz's slightly different A-code of Adv580</li>
+<li>Styles 3 to 9 were development stages of Mike Arnautov's Adv660</li>
+<li>Style 10 is the A-code version of the finalised code of Adv660</li>
+<li>Style 11 was for a while the A-code of Mike Arnautov's Adv770, until
+save game compatibility got broken by some technical developments.</li>
+<li>Style 12 is the current A-code of Adv770</li>
+</ul>
+
+<p>If not explicitly declared, the default style is assumed to be the
+currently highest one supported by the A-code enginebeing used.</p>
+
+<hr><h2 id=notation>A note on conventions and notation</h2>
+
+<p>All A-code documentation uses the following notation:</p>
+
+<ul>
+
+<li>A-code statements are case insensitive. This documentation uses upper case
+except when providing code snippets &ndash; that is just to make such statements
+to stand out against other text.</li>
+
+<li>A-code lexical elements (tokens) are separated by spaces and/or commas. By
+convention, the operator (the first token) is separated from its arguments
+simply by a space (or several spaces), while its arguments are separated by
+commas followed by a space (or spaces). E.g. &quot;APPORT BOTTLE,
+YLEM&quot;.</li>
+
+<li>Angled brackets (&lt; and &gt;) are used to denote a generic name or
+value, to be substituted for as appropriate. Thus, e.g., &quot;SET
+&lt;varname&gt;, &lt;value&gt;&quot; is a generic form of statements such as,
+e.g., &quot;SET COUNT, 1&quot;.</li>
+
+<li>Square brackets ([ and ]) are used to indicate optional arguments. For
+example &quot;LOCAL &lt;varname1&gt; [, &lt;varname2&gt; [...]]</li>&quot;
+indicates that more than one local variable can be declared in a single LOCAL
+statement.</li>
+
+<li>Ellipsis ([...] or just ...) as in the above example, is used to show that
+the preceding element can be repeated.</li>
+
+<li>Curly brackets ({ and }) are
+used to denote mandatory items permitting some alternatives, such as &quot;SET
+&lt;entity&gt;, {&lt;entity2&gt;|&lt;state&gt;|&lt;constant&gt;}&quot;.</li>
+
+<li>The word &quot;entity&quot; is used as a collective noun for any
+declared elements, which are not mere synonyms for numerical constants.</li>
+
+</ul>
+
+<hr><h2 id=files>Source file naming.</h2>
+
+<p>All A-code source file must have the mandatory suffix <b>.acd</b>. However,
+in using A-code tools or when using the A-code INCLUDE directive to
+include another source file, this suffix may be omitted &ndash; it will ba
+automatically added by the software.</p>
+
+<hr><h2 id=structure>A-code program structure.</h2>
+
+<p>At the highest conceptual level, an A-code program falls into four
+distinct parts:</p>
+
+<ul>
+
+<li>Header statements giving game information, (optional)</li>
+
+<li>Declarations of game-specific constants, entities and procedures (also
+optional)</li>
+
+<li>Code to be executed once, on game's invocation (mandatory, but may be 
+empty)</li>
+
+<li>The main code loop, usually prompting the player for commands, and
+processing those commands (mandatory)</li>
+
+</ul>
+
+<p>Thus the simplest A-code program looks like this:</p>
+
+<div class=indented>
+<pre>
+init    # There is actually no initial code
+repeat  # Main loop...
+   stop # ... consisting simply of the instruction to terminate the game
+</pre>
+</div>
+
+<p>And here is the obligatory Hello World code:</p>
+
+<div class=indented>
+<pre>
+init
+   say "Hello world!"
+repeat
+   stop
+</pre>
+</div>
+
+<p>In practice it is often convenient to have more than one INIT and REPEAT
+sections, which are executed in the order of their declaration.</p>
+
+<p>Major (or declarative) directives fall into three categories: header ones,
+translator directives (or pragmas) and entity declarations. With a single
+exception, they can occur in any order. All major A-code directives
+(translator instructions and declarators) must start in column one. All other
+lines of A-code source must be offset from the beginning of the line by one or
+more tabs or spaces.</p>
+
+<p>Other source lines are either parts of declaration, or lines of code. The
+latter have the form of a minor directive (a.k.a. opcode), possibly followed
+by some arguments. Code line tokens are separated by commas and/or spaces. The
+convention of using comma-space separators is not mandatory.</p>
+
+<hr><h2 id=lexicals>A-code lexical items</h2>
+
+<p>A-code lexical items fall into three categories:</p>
+
+<ol>
+<li>Major directives (or opcodes)</li>
+<li>Minor directives (or opcodes)</li>
+<li>Ad hoc modifiers to minor directives</li>
+</ol>
+
+<p>Major directives come in three flavours:</p>
+
+<ul>
+<li>Header statements describing game name, author, date etc...</li>
+<li>Pragmas, which affect the way the game source is treated by any software
+processing it (e.g. an instruction to include a separate source file in place
+of the INCLUDE pragma).</li>
+<li>Declarations of game elements, such as location, objects, procedures
+etc. Forward declarations are allowed! That is, a game entity may be
+referenced before it is declared.</li>
+</ul>
+
+<p>Minor directives are, with one exception (the LOCAL opcode, declaring local
+variables of a procedure) instructions for performing some action 
+(e.g. SET STATUS, 1) and are used to write A-code procedures.</p>
+
+<hr><h2 id=elements>Types of declared elements</h2>
+
+<p>Elements manipulated by A-code are variables, objects, places, texts,
+words, procedures, flags, states and constants. All declared elements are
+global in scope, except for local variables and procedure arguments, both of
+which are local to the relevant procedure.</p>
+
+<p>Some elements (specifically flags, states and constants) are merely
+synonyms for integer values. Procedures (or procs) are a category of their
+own. All other elements are entities in their own rights and are referred to
+collectively as entities in this document.</p>
+
+<p>In its current implementation, A-code makes no distinction between
+vocabulary verbs and nouns, allowing e.g. &quot;cage&quot; to be treated as
+either, depending on context. However, the basic form of a player command
+is verb optionally followed by a noun. Thus in the context of parsing
+player commands &quot;verb&quot; and &quot;noun&quot; will be used, referring
+respectively to the first and second words of player command.</p>
+
+<p>Any source line, which is not a part of a text or a place.object
+description is considered to be terminated by a hash (#) sign. Thus # can be
+used to provide comments, including in-line comments. (This convention holds
+for A-code version 10 and higher -- earlier versions had different convention
+for comments.)</p>
+
+<p>Declared element names are subject to these rules:
+<ol>
+<li>All names are case-independent.</li>
+<li>Names may not contain blanks or other &quot;white space&quot; characters
+(such as tab, end-of-line etc.).</li>
+<li>Unless UTF8 encoding is being used, all names must start with an alpha
+character, a dot or a question mark.</li>
+<li>Unless UTF8 encoding is being used, The rest of the name characters may
+be any of: an alpha character, a digit, dot (.), dash (-), underscore (_)
+shriek (!), single
+quote ('), ampersand (&amp;) and forward slash (/).</li>
+<liThere is no restriction on the length of symbolic names, but only the first
+16 characters are significant.</li>
+</ol>
+</p>
+
+<p id=refnos>All declared (or automatically declared) elements other than
+states, flags or constants are automatically assigned a &quot;reference
+number&quot, or <i>refno</i> for short. You do not need to worry about
+specific refnos, but it is useful to understand that (a) they exist and (b)
+how they are assigned.</p>
+
+<p>Refnos are assigned separately for each type of entity, consecutively in
+the order in which elements are declared in the source code. Thus e.g.
+objects will have consecutive refno value, even if their declaration is
+interspersed with declarations of other entities. Refnos can be
+thought of as &quot;addresses&quot; of relevant entities and, indeed, can be
+used as such.</p>
+
+<p>Unlike other entities, texts can be declared nameless. Such texts can be
+accessed and manipulated via refno offsets from the nearest preceding named
+text. (Note, however, that this feature is deprecated in favour of using text
+switches.) In-line texts are also permitted. See the <a
+href="acode-texts.html">A-code texts description</a> later in this
+document.</p>
+
+<p>Entities other than vocabulary words also have attributes other than their
+assigned refnos. They have a <i>value</i> (a short integer) and a bit-screen
+of binary <i>flags</i>. Objects, places and texts have further attributes
+appropriate to their type. These will be covered when describing declarations
+of such entities.</p>
+
+<p>All entity values are automatically initialised to zero and all flags are
+automatically set to false on program start-up.</p>
+
+<p>Places and vocabulary words can have (and generally do) have procedures
+associated with them via the AT and ACTION major directives (see below).</p>
+
+<hr class=dotted>
+<h3 id=flags>Flags</h3>
+
+<p>Flags are binary yes/no properties (bits in entity bitscreen), referred to
+by symbolic names. A flag's value is simply a bit-screen offset. There are
+three separate categories of flags. One is defined for objects, one for places
+and one for variables. Each entity has its own instance of the
+appropriate kind of a flag set. There are no limits on the number of flags in
+a flag set.</p>
+
+<p>Even within a given set, each individual flag can have several different
+names, allowing for the greater legibility of the source. Since alternative
+names are usually required for variable flags, several different variable flag
+sets can be defined (as opposed to only one for each the object and the place
+flag sets). The actual variable flag set is simply the biggest of these, with
+individual flags having synonymous names as defined in different set
+definitions. Don't worry if this makes little sense - it will eventually.</p>
+
+<hr class=dotted>
+<h3 id=constants>Constants</h3>
+
+<p>A-code constants come in several flavours, but fall into two simple types:
+numerical (integer values only) and symbolic. Where a integer value has been
+given a symbolic name, this can be used interchangeably with the actual value
+it names.</p>
+
+<p>The various constant flavours are:</p>
+
+<ul>
+
+<li>Numerical integer values (signed short integers)</li><br>
+
+<li>Symbolic names of such values, declared as CONSTANT for ease of
+reading game sources.</li><br>
+
+<li>Some entities (places, objects, variables and texts) each have a state
+(a.k.a. value) associated with them. These can be named by using STATE
+declarations. The only difference between a state and a symbolic constant is
+that the former cannot be negative.</li><br>
+
+<li>Some entities (namely objects, places and variables), also carry a
+bitscreen of binary flags. Symbolic names shuold be given to individual flags
+via FLAGS declaration &ndash; these are effectively just symbolic names for
+bitscreen offsets (necessarily non-negative).<br>&nbsp;<br>Flag names differ
+from state names in some important ways. Firstly, there can be only one set of
+flags associated with locations, whereas a number of multiple flag sets can be
+declared for objects and variables. Secondly, the distinction between object,
+place and variable flag sets is used as part of syntax checks. Thirdly, the
+system uses flag declarations to work out sizes of bitcreens required
+respectively by objects, places and variables.</li><br>
+
+<li>Finally, there are compound constants. These are deprecated.
+See <a href="#obsolete">the deprecated features section</a> for a brief
+explanation.</li>
+
+</ul>
+
+<hr class=dotted>
+<h3 id=variables>Variables</h3>
+
+<p>Variables are symbolically named entities, each with a state and an
+instance of the variable flag set. There are some mandatory variables (e.g.
+HERE, see below), but any number of additional variables can be declared by
+the programmer. Words entered on the command line are available through the
+special mandatory variables ARG1 and ARG2 (and ARG3, currently used for
+handling of EXCEPT, but available for a future parser use of holding command
+instrument). This generally restricts A-code to simple verb/noun commands,
+even though the parser makes this less then obvious, permitting apparently
+complex commands such as e.g. DROP ALL BUT LAMP AND ROD THEN EXIT (see <a
+href="acode-parser.html">a separate document</a> for an explanation of the way
+player commands get parsed).</p>
+
+<p>It is important to understand that the ARGn variables are unlike any
+others. They have the appropriate player command word associated with them
+regardless of the actual variable value (unless the value is -1, meaning "no
+word"). This makes error handling possible, because variable value can be sat
+by the parser to an appropriate error code, while embedding the variable in a
+text to be displayed, actually embeds the corresponding command word.</p>
+
+<p>A special form of variable declaration is an <b>array</b>. In A-code this
+has a very limited, simple meaning: declaring an array of n elements declares
+a variable of the given name, followed by n-1 anonymous variables. (See below
+on handling of anonymous entities).</p>
+
+<p>An automatic indirection occurs for some A-code directives when
+manipulating variables into which "addresses" (refnos) of other entities have
+been loaded. Generally speaking this happens for non-arithmetical manipulation
+of variables.</p>
+
+<hr class=dotted>
+<h3 id=texts>Texts</h3>
+
+<p>Texts are named, nameless, or in-line entities representing a piece of
+text. Any amount of text can be associated with a text entity. Generally
+multi-line texts are considered to be unformatted, line wrapping and filling
+being done by the A-code kernel at run time. However, A-code texts are more
+than just textual strings. A <a href='acode-texts.html'> separate document</a>
+gives their full description.</p>
+
+<hr class=dotted>
+<h3 id=procs>Procedures</h3>
+
+<p>A-code procedures are unusual in that there can be any number of procedures
+sharing the same name. Such procedure groups are executed in the order of
+their occurrence in the source (i.e. in the order of their refnos).</p>
+
+<p>Procedures come in 5 varieties:</p>
+
+<ol> 
+
+<li>Initialising ones, declared as INIT. These form a procedure group, which
+gets executed on game startup.</li>
+
+<li>Main loop, declared as REPEAT. These form a procedure group executed
+repeatedly after the INIT procedure group execution is completed.</li>
+
+<li>&quot;Free-standing&quot; declared as PROC (or PROCEDURE). These
+procedures are all named. Procedure arguments (if any) are specified on the
+declaration line after the procedure's name. If two or more form an
+identically named procedure group, they must all have the same number of
+arguments.</li>
+
+<li>Associated with a place and declared as AT (as in &quot;at
+such-and-such-place&quot;). Their names are in fact names of relevant
+locations. No arguments are allowed.</li>
+
+<li>Associated with a vocabulary word and declared as ACTION. The name of such
+a procedure is the vocabulary word in question (or equivalently, any of its
+synonyms). Arguments are allowed and, perhaps surprisingly, procedures in the
+same procedure group will have differnt arguments and even different number of
+agruments. See the minor direcive ACTION below for details.</li> </ol>
+
+<hr class=dotted>
+<h3 id=places>Places</h3>
+
+<p>Places are symbolically named entities, each with a state, an instance of
+the place flag set, up to three different unnamed texts (brief, long and
+detailed descriptions) and a "hook" for unnamed chunks of A-code to be
+associated with the place. By default symbolic place names are not available
+in the player vocabulary, but each such name can be specifically forced into
+the vocabulary by prefixing the name in the place declaration with a plus sign
+(+). Any number of synonyms can be defined for a place name, though of course,
+there is no point doing this unless such names are forced into the player
+vocabulary. All properties of texts (described above) apply to place
+descriptions.</p>
+
+<hr class=dotted>
+<h3 id=objects>Objects</h3>
+
+<p>Objects are also individually named (with any number of synonymous names)
+and once again, have to their name a state and an instance of the object flag
+set each, plus up to three different descriptions (inventory, long and
+detailed), but no A-code. Object descriptions also obey the rules common to
+any kind of text. Object names (and synonyms) do get entered into the player
+vocabulary by default, but it is possible to exclude any specific object name
+by prefixing the object name in its declaration with a minus sign (-).</p>
+
+<hr class=dotted>
+<h3 id=words>Words (a.k.a. verbs, a.k.a. nouns)</h3>
+
+<p>Words have symbolic names (with synonyms) and each is associated with one
+or more chunks of A-code. By default, verb names are added to the vocabulary,
+but again, any specific name can be excluded. It is sometimes useful to have
+"dummy" verbs for internal house-keeping, but not available to the player.
+This is again achieved by prefixing the verb name with a -, in the verb
+declaration.</p>
+
+<p>As noted above, some of the entity names are automatically or selectively
+added to the player vocabulary.</p>
+
+<p>To summarise, vocabulary words consist of: all explicitly defined
+words/verbs/nouns and their synonyms, all object names and their synonyms not
+explicitly excluded and some those place names which are explicitly included.
+A <a href='acode-vocabulary.html'>separate document</a> gives a full
+description of A-code vocabulary.</p>
+
+<hr>
+<h2 id=major>Major A-code directives</h2>
+
+<p>Major directives are either declarations or translator instructions. They
+must start in the first column of a line &ndash; that's how they are recognised in
+the first place, since everything else must be indented. The indentation depth
+is arbitrary &ndash; the convention of 9 leading spaces and subsequent indents of
+three spaces at a time is not mandatory.</p>
+
+<hr class=dotted>
+<h3 id=pragmas>Pragmas</h3>
+
+<p>Firstly, there are two major directives, which are in fact translator
+instructions:</p>
+
+<dl>
+
+<dt><b>INCLUDE &lt;file&gt;</b></dt>
+<dd>read commands from indicated file until end of file,
+then revert to reading from the previous file. Include files may be nested
+down to 10 levels.</dd><br>
+
+<dt><b>INCLUDE? &lt;file&gt;</b></dt>
+<dd>conditional include &ndash; includes the file if it exists. If it does not
+exist, this directive is simply ignored. Given the fact that A-code permits
+forward declarations and supports procedure groups, this pragma can be used
+for optional addition of new commands or modification of existing commands
+&ndash; a feature used extensively by Adv770 to provide the optional Wizard
+(debug) mode.
+</dd>
+</dl>
+
+<hr class=dotted>
+<h3 id=header>Game info, a.k.a header directives</h3>
+
+<p>Secondly, there are six game information directives, all of them optional.
+</p>
+
+<dl>
+
+<dt><b>NAME &lt;game-name&gt;</b></dt>
+<dd>names the game (a.g. adv770). If not specified, the game's name is taken
+to be the name of the file given to the acdc translator, less the .acd
+suffix.</dd><br>
+
+<dt><b>VERSION &lt;version&gt;</b></dt>
+<dd>specifies game's version. Traditionally this has the format of two numbers
+(major and minor versions) separated by a dot (.), however, this format is not
+enforced. If omitted, the current year is used as the game's version.</dd><br>
+
+<dt><b>DATE &lt;date&gt;</b></dt>
+<dd>gives a free-format specification of the date of this version of the
+game.</dd><br>
+
+<dt><b>AUTHOR &lt;author-name&gt;</b></dt>
+<dd>name the game's author (also free format).</dd><br>
+
+<dt id=style><b>STYLE &lt;style&gt;</b></dt>
+
+<dd>specifies the A-code style, i.e. the major version number of A-code in
+which the game is written. If used, directive must precede any non-header
+directives. If omitted, style is set to the major version of the <i>acdc</i>
+translator used to convert the game's A-code source into ANSI C.<br><br> Style
+1 is reserved for Dave Platt's original code of Adv550. Style 2 is similarly
+reserved to Mike Goetz's Adv580 (an expansion of Adv550). Styles 3 to 9 are
+not in use. Style 10 is reserved for Adv660. </dd><br>
+
+<dt><b>UTF8</b></dt>
+
+<dd>signals use of the UTF8 character encoding in the game's A-code
+source. This directive is only required if the game uses UTF8 characters
+in its entity names or vocabulary words. It is not (and never was) required
+if use of such characters is restricted to games texts and objects/place
+descriptions.</dd>
+
+</dl>
+
+<p>(There are also a couple of header directives (GAMEID and DBNAME) which are
+obsolete and only supported in style 10, i.e. in Adv660.)</p>
+
+<hr class=dotted>
+<h3 id=declarations>Declarations</h3>
+
+<p>The remaining major directives are all declarators.</p>
+
+<p>Other than the flags, states and constants, all declared entities are
+associated with a "reference number" (refno) and are internally referenced by
+A-code <b>only</b> by this number. The reference numbers of entities of the
+same kind (e.g. objects, places, texts, variables...) are guaranteed to be
+lumped together into an unbroken numerical interval, with their reference
+numbers incrementing by one in the order in which the entities are
+declared.</p>
+
+<p>To reiterate: within each declarative
+category (e.g. objects, places, texts) entities are stored sequentially in the
+order of declaration and hence can be referenced via refnos by numerical
+offsets from other entities.</p>
+
+<p>It is not necessary for the game author to be aware of the reference
+numbers of declared entities, but it is helpful to be aware of this
+arrangement in general terms.</p>
+
+<p id=indirection>Reference numbers are used to achieve indirection in A-code.
+They can be loaded into variables, which are then recognised by most opcodes
+as "indirectors" so that the opcode is actually applied to the entity whose
+reference number the variable stores. This does not apply to arithmetical
+opcodes, making it possible to do "reference number arithmetic". This allows,
+for example, referencing nameless texts by offsets from other named texts, and
+has other uses too. It is <b>not</b> necessary to know the "reference number"
+of an entity, in order to load it into a variable.</p>
+
+<dl>
+
+<dt><b>FLAGS {VARIABLE|OBJECT|PLACE}</b></dt> <dd>starts the declaration of a
+flag set of the appropriate kind (variable, object or place). It is followed
+by any number of indented lines, each declaring a symbolically named flag in
+the set, optionally followed on the same line by synonymous names. Only one
+object and place set declarations are permitted, but any number of variable
+set declarations are allowed. (They are equivalent to a single declaration
+with flags declared on corresponding lines being synonymous with each
+other).</dd><br>
+
+<dt><b>STATE [value] statename [...]</b></dt> <dd> is used to declare symbolic
+names for entity states. It makes "statename" synonymous with the value
+preceding it, or with zero, if the value is absent. A STATE directive can be
+followed by any number of indented lines of the format " [value] statename",
+which declare further state names to be synonymous with the corresponding
+value, if given, or with the value of "statename" defined on the preceding
+line plus 1. Note that the STATE directive deliberately does not specify which
+entities the defined statenames relate to, allowing for partial state
+sequences to be shared by different entities. "Value" can be a number, a
+previously declared constant, a previously declared entity (in which case the
+"reference number" of the entity is used) or several such, combined into a
+simple expressions with plus (+) and/or minus(-) signs, without any separating
+blanks.</dd><br>
+
+<dt><b>CONSTANT [value] constname [...]</b></dt> <dd> This directive is in
+fact exactly synonymous with the STATE directive. It is used simply to
+indicate that the symbolic constants being defined are general purpose
+constant and not entity state names. The two are completely
+interchangeable.</dd><br>
+
+<dt><b>TEXT [textname]</b></dt> <dd> declares a piece of text, which may be
+associated with a text name or be "anonymous" (available only by offset from
+some named text). The TEXT directive is followed by one or more lines of text,
+which must <b>not</b> start in column 1 (anything starting in column 1 is
+taken to be a major directive -- it follows, that all leading spaces are
+ignored). A-code texts are very rich entities. Please see <a
+href='acode-texts.html'>a separate document</a> for details.</dd><br>
+
+<dt><b>FRAGMENT textname</b></dt>
+<dd> Identical to the TEXT directive, except that the text is not terminated
+by a new line. I.e. it is a text fragment.</dd><br>
+
+<dt><b>PLACE [+]placename [...]</b></dt>
+<dd> declares a location. By default, "placename" is not entered into the
+player vocabulary, unless prefixed with a '+' (which does not count as a part
+of the name). Synonymous names can be declared on the same line. Each location
+declaration is optionally followed by a piece of text (following all the text
+rules described above), comprising up to three different descriptions &ndash; the
+brief one, the full one and the detailed one &ndash; and terminated by a major
+directive. Insofar as these three description components occur &ndash; they occur in
+that particular order. The brief description (if any) immediately follows the
+PLACE line and is terminated by a text line starting with a '%', '&amp;' or a
+major directive. The full description (if any) starts with a line beginning
+with '%' and is terminated by a line beginning with a '&amp;' or by the next
+major directive. The detailed description (if any) starts with a line
+beginning with a '&amp;' and is terminated by the next major directive. If the
+full description is missing and the brief one is present, the full one
+defaults to the brief one. If the detailed description is missing, it defaults
+to the full one, if that is present, or to the brief one, if the full one is
+absent and the brief one present. It is possible for a location to have no
+description at all. The '%' and '&amp;' delimiters are not themselves
+considered to be a part of the description. If a text switch is encountered in
+a description being displayed, the current state of the location is used as
+the switch qualifier.</dd><br>
+
+<dd>All special trickery described under the TEXT directive applies to place
+descriptions as well.</dd><br>
+
+<dt><b>OBJECT [-]objname [[=]objname ...]</b></dt>
+<dd> declares an object. By default, "objname" is entered into the player
+vocabulary, unless prefixed with a '-' (which does not count as a part of the
+name). Synonymous names can be declared on the same line. These can be
+prefixed with a '=', indicating their re-mapping to the last synonym not so
+prefixed. Each object declaration is optionally followed by a piece of text
+(following all the text rules described above), comprising up to three
+different descriptions &ndash; the inventory one, the full one and the detailed one
+- and terminated by a major directive. Insofar as these three description
+components occur &ndash; they occur in that particular order. The inventory
+description (if any) immediately follows the PLACE line and is terminated by a
+text line starting with a '%', '&amp;' or a major directive. The full
+description (if any) starts with a line beginning with '%' and is terminated
+by a line beginning with a '&amp;' or by the next major directive. The
+detailed description (if any) starts with a line beginning with a '&amp;' and
+is terminated by the next major directive. If the full description is missing
+and the inventory one is present, the full one defaults to the inventory one.
+If the detailed description is missing, it defaults to the full one, if that
+is present, or to the inventory one, if the full one is absent and the
+inventory one present. It is possible for an object to have no description at
+all. The '%' and '&amp;' delimiters are not themselves considered to be a part
+of the description. If a text switch is encountered in a description being
+displayed, the current state of the object is used as the switch qualifier.</dd><br>
+
+<dd>All special trickery described under the TEXT directive applies to object
+descriptions as well.</dd><br>
+
+<dt><b>NOISE word [...]</b></dt>
+<dd> NOISE declares words to be ignored when parsing player's input.</dd><br>
+
+<dt><b>VERB [-]verbname [synonyms]</b></dt>
+<dd>Declares a word "verbname" (optionally with synonyms), which is (by
+default) entered into the vocabulary available to the player. The optional
+minus sign prefixing the principal verb word stops the verb being available in
+the vocabulary &ndash; such dummy verbs are chiefly used for range checking within
+the vocabulary and bracket groups of verbs of a similar kind (e.g. movement
+directions).<br><br>
+VERB is currently synonymous with NOUN and WORD. Adjectives and
+prepositions are not currently supported. Distinction between
+different word types are up to the game's code.</dd><br>
+
+<dt><b>PARSER {COMMA|SEMICOLON|REPEATER} word [...]</b></dt>
+
+<dd>By default, the English word AND is used as a synonym for a comma in
+player commands. PARSER COMMA allows this to be replaced with any other word
+(or words). Similarly PARSER SEMICOLON and PARSER REPEATER, permit
+re-definition respectively of the semicolon synonym THEN and of the repeater
+command AGAIN.</dd><br>
+
+<dt><b>ACTION verb [objname]</b></dt>
+<dd>The major directive ACTION is used to associate chunks of A-code (procedures) with
+individual verbs. More than one procedure can be assigned to the same verb and
+they are executed in the order of their declaration. If the optional object
+name is given, that particular action procedure is skipped, unless the object
+in question features in player's command.</dd><br>
+
+<dt><b>VARIABLE variable [...]</b></dt>
+<dd> defines one or more variables. Note that variables defined on one line
+like this are <b>not</b> synonymous. By convention, related variables tend to
+be defined in a single VARIABLE directive.</dd><br>
+
+<dt><b>ARRAY arrayname constant</b></dt>
+<dd> defines a consecutive block of variables of the size given by the
+constant. The first of these is named by the array name, the rest are
+anonymous &ndash; accessible only via refno offsets from the array's base
+</dd><br>
+
+<dt><b>PROC procname [arg ... ]</b></dt>
+<dd> defines a chunk of A-code (a set of executable code) called "procname".
+The procname can be followed by a list of arguments, which are passed by value
+when the procedure is called. The subsequent lines contain the code, terminated
+by the next major directive.</dd><br>
+
+<dt><b>AT placename</b></dt>
+<dd> defines code to be executed when the player is at the indicated place -
+the following lines contain the actual code. More than one AT procedure may be
+defined for a particular place &ndash; they are executed in the order in which they
+are declared in the A-code source.</dd><br>
+
+<dt><b>INITIAL</b></dt>
+<dd> defines once-only code to be executed at initialisation time. Multiple
+INITIAL commands may be used and are executed in the order encountered.</dd><br>
+
+<dt><b>REPEAT</b></dt>
+<dd> defines the main action-processing code that is executed during each
+player input. After the INITIAL code has been executed, the REPEAT statements
+are executed. Once the last REPEAT statement is executed, the program loops
+back and starts again with the first. </dd> 
+
+</ul>
+
+<p>Each  of  the above "major directives" must appear in column 1.  A major
+directive embraces all following lines up to but not including the  next
+major  directive statement (i.e., all lines in which column 1 is blank) or
+the end of the source file in which it occurs.</p>
+
+<hr>
+<h2 id=automatic>Special entities and flags</h2>
+
+<p>Not all entities or flags need to be declared explicitly. Some are
+&quot;automatic&quot; and some are &quot;optional&quot;<p>
+
+<p>&quot;Automatic&quot; means that the entity is declared automatically.
+Automatic entities may be explicitly declared by the program, but if so, must
+be of the correct type. If an entity of that name is declared as some other
+type, this is treated as a compilation/translation error.</p>
+
+<p>&quot;Optional&quot; means that the entity may but need not be declared by
+the program. If declared, it has a special meaning. An entity of that name but
+of a different type is treated as a compilation/translation error.</p>
+
+<div><b>INHAND</b> automatic location
+<div class=indented2>Use: contains all objects currently
+carried by the player; contents are maintained by the kernel but can be also
+accessed and modified by the game's code.
+</div></div><br>
+
+<div><b>STATUS</b> &ndash; automatic variable
+<div class=indented2>Use:
+<div class=indented>set by the kernel to indicate the number of words in the player's
+latest command.<br>
+Can be set by the program to various values in order to pass information
+to the kernel.</div>
+Possible values:
+<div class=indented><b>BADSYNTAX</b> &ndash; automatic state
+<div class=indented>Use: set by the kernel if the current player command
+cannot be parsed.</div>
+<b>NO.MATCH</b> &ndash; automatic state
+<div class=indented>Use: set by the program to indicate that no abbreviation
+or approximate matching is to be performed on the next player command.</div>
+<b>NO.AMATCH</b> &ndash; automatic state
+<div class=indented>Use: set by the program to indicate that no approximate
+matching is to be performed on the next player command.</div>
+value <b>-1</b>
+<div class=indented>Use: set by the kernel to signal game restore on 
+start-up.</div>
+</div>
+Flags:
+<div class=indented><b>MOVED</b> &ndash; optional flag
+<div class=indented>Use: set by the kernel whenever player's location changes.
+</div></div>
+<div class=indented><b>JUGGLED</b> &ndash; optional flag
+<div class=indented>Use: set by the kernel if player's inventory has changed.
+</div></div>
+<div class=indented><b>PLS.CLARIFY</b> &ndash; optional flag
+<div class=indented>Use: set by the game's code in order to trigger orphan 
+processing of next player input; cleared by the kernel as a part of
+orphan processing. (See <a href="acode-parser.html">the description of the
+A-code parser</a> for an explanation of orphan processing of commands.)</div>
+</div></div></div>
+<br>
+
+<div><b>HERE</b> &ndash; automatic variable
+<div class=indented2>Use: set by the kernel to the refno of the player's
+current location.</div>
+</div>
+<br>
+<div><b>THERE</b> &ndash; automatic variable
+<div class=indented2>Use: set by the kernel on a change to player's location
+to the refno of the location prior to the change.</div>
+</div>
+<br>
+
+<div><b>ARG1</b> &ndash; automatic variable
+<div class=indented><div class=indented> Use: set by the kernel to the refno
+of the player command's verb<br>
+Possible values: 
+<div class=indented><b>BADWORD</b> &ndash; automatic state 
+<div class=indented>Use: set by the kernel if the word is not understood.</div>
+<b>AMBIGWORD</b> &ndash; automatic state
+<div class=indented>Use: set by the kernel if the player's word can be an
+abbreviation of more than one vocabulary word.</div>
+<b>AMBIGTYPO</b> &ndash; automatic state
+<div class=indented>Use: set by the kernel if the player's word can be 
+matched as a typo in more than one way</div>
+<b>SCENEWORD</b> &ndash; automatic state
+<div class=indented>Use: set by the kernel if the player's word is not found
+in the vocabulary but matches a word (in excess of three characters) in the
+latest location description or in a text displayed since
+the last move.</div>
+</div></div></div>
+<br>
+
+<div><b>ARG2</b> &ndash; automatic variable
+<div class=indented><div class=indented>Use: set by the kernel to the refno of
+the player's noun (if any) or zero otherwise.<br>
+States: (as ARG1)
+</div></div></div>
+<br>
+
+<div><b>ARG3</b> &ndash; automatic variable
+<div class=indented><div class=indented>Use: At present used solely for EXCEPT
+processing. If player's command is of the form &quot;&lt;verb&gt; ALL EXCEPT
+&lt;list&gt;&quot;, ARG3 may be set by the kernel to BADWORD, AMBIGWORD or
+AMBIGTYPO, if appropriate.
+</div></div></div>
+<br>
+
+<div><b>CONTEXT</b> &ndash; optional variable
+<div class=indented><div class=indented>Use: avoid use of the QUERY minor
+directive in game builds which require single-turn operation (see a separate
+document on <a href="acode-builds.html">A-code game build modes</a>).<br> Value:
+If non-zero, indicates the current command to be a response to a query, the
+value (as set by the program) indicating the nature of the query.<br>
+Flags:
+<div class=indented><b>PROMPTED</b> &ndash; automatic flag
+<div class=indented>Use: set by the kernel if the player has been
+prompted.</div>
+</div></div></div>
+<br>
+
+<div><b>ENTNAME</b> &ndash; optional variable
+<div class=indented>Use: when processed by the SAY
+directive, shows the symbolic name of the entity to which ENTNAME is set
+to point.<br>
+Value: a pointer to a named entity set by game's code.
+</div><br>
+
+<div><b>TYPO</b> &ndash; optional text
+<div class=indented2>Use: enables single-typo matching of player commands
+against the games vocabulary.
+<div class=indented>
+<p>The TYPO text must contain a switch of 4 (or a multiple of four) components.
+It is used by the kernel to explain a typo match to the player. Regardless 
+of the number of components, it must be declared as</p>
+<pre>
+FRAGMENT CYCLE TYPO
+</pre>
+<p>The first three components in each foursome must contain one word holder
+(#). The four switch components (in any of the switch quads if there are nore
+than 4 components) are used by the kernel as follows:</p>
+<ol>
+<li>Shows original player word that got typo-corrected</li>
+<li>Shows the typo-corrected version fo what the player gave</li>
+<li>Shows the full non-abbreviated matched word if typo-corrected version is
+an abbreviation.</li>
+<li>States that the corrected version is assumed</li>
+</ol>
+<p>Here is an example from Adv770: 
+<div class=indented>
+<pre>
+FRAGMENT cycle TYPO
+    [Sorry, the word "#" is not familiar to me./ I'll just assume you
+    meant "#"/, i.e. "#"/./
+    Regretfully, I don't have "#" in my dictionary./ But I do know
+    "#"/, as in "#"/, so I'll assume you meant that./
+    The word "#" is not one I know./ Let's assume you meant "#"/,
+    meaning "#"/./
+    I wonder what "#" might be.../ I guess it could be mistyped
+    "#"/, i.e. "#"/, so I'll assume that was what you meant.]
+</pre></div>
+</div></div><br>
+
+<div><b>UNDO</b> and <b>REDO</b> optional verbs.
+<div class=indented2>Use:
+<div class=indented>Their presence activates the A-code undo/redo facility,
+enabling players to undo a specified number of last commands and, if
+necessary, undo some or all of this undoing. This is described in 
+<a href="acode-undo.html">a separate document</a> dealing with undo/redo.</div>
+</div></div><br>
+
+<div><b>UNDO.STATUS</b> &ndash; optional variable
+<div class=indented2>Use: set by the kernel to indicate the number of commands
+undone or re-done, which need not be the number requested by the player.
+<div class=indented><b>UNDO.INFO</b> &ndash; automatic flag
+<div class=indented>Use: Can be used by game code to note that player has
+been advised of rules for using undo; set to off by default and
+ignored by the kernel.</div>
+<b>UNDO.TRIM</b> &ndash; automatic flag
+<div class=indented>Use: maintained by the kernel: if set, the level of 
+undo/redo was found to be excessive and had to be trimmed to match the
+existing undo history.
+</div>
+<b>UNDO.INV</b> &ndash; automatic flag
+<div class=indented>Use: maintained by the kernel: if set, the player's
+inventory has changed as the result of undo/redo.</div>
+<b>UNDO.BAD</b> &ndash; automatic flag
+<div class=indented>Use: maintained by the kernel: if set, undo/redo failed.</div>
+</div></div><br>
+
+<div><b>DWARVEN</b> &ndash; optional variable
+<div class=indented2>Use: If set to non-zero, all text
+output by the game is shifted circularly one position up in the alphabet and
+all player input is shifted one position down. If set to zero, any portion of
+game text delimited by % signs is output shifted one position up.
+</div></div><br>
+
+<div><b>PROMPT</b> &ndash; reserved optional variable
+<div class=indented2>Use: none at present. Reserved for
+specifying non-standard prompt.
+</div></div><br>
+
+<div><b>SCHIZOID</b> an automatic object flag
+<div class=indented2>Use: Indicates that the object is to
+be treated as present in its current location, and <i>also</i> in the
+immediately succeeding one (i.e. the one with the refno one higher).
+</div></div></div><br>
+
+<hr>
+<h2 id=minor>Minor A-code directives (a.k.a. opcodes)</h2>
+
+<p>The actual A-code code consist of minor directives (or opcodes) followed by
+their arguments (if any). A line of code cannot have more than a single opcode
+line.</p>
+
+<p>The following is a list of the available opcodes and a quickie description
+of what they do. As noted previously, in some cases if an argument is a
+variable, it is automatically de-referenced &ndash; i.e. the operation
+indicated by the opcode is applied not to the argument but to the entity
+referenced by the argument. Any such opcode arguments are denoted by a
+trailing asterisk in the following summaries.</p>
+
+<hr class=dotted>
+<h3 id=local>Local variables</h3>
+
+<dt><b>LOCAL varname [varname...]</b></dt> <dd>Declares correspondingly named
+variables local to a procedure. It must immediately follow either the major
+directive declaring the procedure in question, or another LOCAL declaration.
+Local names pre-empt any identically named global variables. Local variables
+are dynamically initialised to zero value and zero bitscreen whenever the
+procedure is entered. They do not exist outside the procedure.<br>&nbsp;<br>
+Local variables are not a part of the data set saved/restored by saving
+or restoring a game image. Thus they can be used to preserve some values
+over a game restore, instead of using the (now obsolete) EXEC 6 and
+EXEC 7.</dd>
+</dl><br>
+
+<hr class=dotted>
+<h3 id=conditionals>Conditionals</h3>
+
+<p>All conditional structures have the basic form of</p>
+
+<p>conditional, some code, FIN<br>
+conditional, some code, ELSE, some code FIN</p>
+
+<p>where the immediately following block of code is executed if the
+conditional is true, and the block following ELSE (if present) is executed if
+it is false.</p>
+
+<p>In order to avoid deeply nested indentation in source code, A-code
+also features OTHERWISE, analogous to C's "else if" or Perl's elsif. Thus</p>
+
+<pre>
+   some condition
+      some code
+   ELSE
+      some condition
+         some code
+      ELSE
+         some condition
+            some code
+         FIN
+      FIN
+   FIN
+</pre>
+
+<p>can be equivalently written as</p>
+
+<pre>
+   some condition
+      some code
+   OTHERWISE
+   some condition
+      some code
+   OTHERWISE
+   some condition
+      some code
+   FIN
+</pre>
+
+<p>The following conditionals are available:</p>
+
+<p>(A quick reminder: the value of a place or an object, is its state;
+however, variables (local or global) can be "pointers", i.e. have the refno of
+some entity is loaded into them. In the below, variables, which are in fact
+pointers are represented as &quot;varname*&quot;.)
+
+value of a variable is either just that value or (if indirection is indicated 
+<dl>
+<dt><b>IFEQ {entname1|const1}, {entname2|const2}</b></dt>
+<dd>True if the value of the first argument is equal to the value of the
+second argument.</dd><br>
+
+<dt><b>IFNE {entname1|const1}, {entname2|const2}</b></dt>
+<dd>True if the value of the first argument is not equal to the value of the
+second argument.</dd><br>
+
+<dt><b>IFLT {entname1|const1}, {entname2|const2}</b></dt>
+
+<dd>True if the value of the first argument is less then the value of the
+second argument.</dd><br>
+
+<dt><b>IFLE {entname1|const1}, {entname2|const2}</b></dt>
+
+<dd>True if the value of the first argument is less then or equal to the value
+of the second argument.</dd><br>
+
+<dt><b>IFGT {entname1|const1}, {entname2|const2}</b></dt>
+<dd>True if the value of the first argument is greater than the value of the
+second argument.</dd><br>
+
+<dt><b>IFINRANGE {entname|constant} {entname|constant}
+  {entname|constant}</b></dt>
+<dd>True if the value of the first argument is greater or equal to that of the
+second argument, but less or equal to the value of the third one. </dd><br>
+
+<dt><b>CHANCE {entname|constant}</b></dt>
+<dd>True with the probability of n%, where 'n' is the value of the
+argument.</dd><br>
+
+<dt><b>IFHAVE {objname|varname}* [{state|flagname}]</b></dt>
+<dd>True if the player is holding the specified object. If the second argument
+is supplied, the object also has to be in the specified state or have the
+specified flag set.</dd><br>
+
+<div class=indented2>e.g. if THING is a variable,<br>
+
+<pre class=>
+   LDA THING, BOTTLE
+   IFHAVE THING
+</pre>
+
+will be true if and only if the bottle is in the player's inventory. Of 
+course,<br>
+
+<pre>
+   IFHAVE BOTTLE
+</pre>
+
+will have the same effect in this particular example.</div><br>
+
+<dt><b>IFHERE {objname|varname*} [{state|flagname}]</b></dt>
+<dd>True if the specified object is at the same location as the player. If the
+second argument is supplied, the object also has to be in the specified state
+or have the specified flag set.</dd><br>
+
+<dt><b>IFNEAR {objname|varname}* [{state|flagname}]</b></dt>
+<dd>True if the specified object is held by the player or is in the same
+location as the player. If the second argument is supplied, the object also
+has to be in the specified state or have the specified flag set.</dd><br>
+
+<dt><b>IFFLAG {entname|varname*} flagname</b></dt>
+<dd>True if the specified entity has the corresponding flag set. If a flagless
+entity is specified, the test returns FALSE.</dd><br>
+
+<dt><b>IFAT {placename|varname*} [...]</b></dt>
+<dd>True if the player is currently at the one of the specified locations.
+</dd><br>
+
+<dt><b>IFLOC {objname|varname1}*, {placename|varname2*} [...]</b></dt>
+<dd>True if the object specified by the first argument is at one of the the
+specified locations.</dd><br>
+
+<dt><b>IFIS varname, {objname|placename|varname*} [...]</b></dt>
+<dd>True if the named variable is a pointer to one of the specified objects
+or locations.</dd><br>
+
+<dt><b>IFKEY word [word]</b></dt>
+<dd>True if all specified words appear in the player's command.</dd><br>
+
+<dt><b>IFANY word [word...]</b></dt>
+<dd>True if any of the nominated words appear in the player's command.</dd><br>
+
+<dt><b>QUERY {textname|varname*}</b></dt>
+<dd>Displays the nominated text, which should be a yes/no question, and gets
+player response. Set to true if the answer is yes and false otherwise.
+<b>CAUTION</b> this directive is incompatible with library and
+single-turn modes (and thus incompatible with the HTML/JavaScript build, which
+uses the library mode). If such modes are to be supported, use <a
+href="acode-context.html">the CONTEXT variable mechanism</a> instead.</dd>
+
+<dt><b>IFHTML</b></dt>
+<dd>True if the game is running in a mode in which its output is formatted
+as HTML.</dd>
+
+<dt><b>IFCGI</b></dt>
+<dd>True if the game is running in a cloud via a CGI interface.</dd>
+
+<dt><b>IFDOALL</b></dt>
+<dd>True if the game is processing a DOALL command loop.</dd>
+
+<dt><b>IFTYPED</b></dt>
+<dd>True if the player actually typed the string given as an argument, as one
+of the command words.<br>
+
+<div class=indented2>Thus for example<br>
+
+<pre>
+   IFTYPED W
+</pre>
+
+will be true only if the player typed W rather than WEST, even though
+W is interpreted as WEST.<div></dd>
+
+<dt><b>IFNEEDCMD</b></dt>
+<dd>True if there are no more pending simple commands to process, i.e. the
+player is about to be prompted for a new command. This is useful e.g. to avoid
+interrupting processing of a compound command with a spontaneous offer of
+help.</dd>
+
+</dl>
+
+<hr class=dotted>
+<h3 id=logicals>Logical operators</h3>
+
+<p>Now for some logical operators, to string the tests together, creating
+"compound" conditions. Note that tests are executed in the order in which they
+are encountered, with no precedence rules for operators and no bracketing.
+So, conceptually, A and B or C and D is understoof as ((A and B) or C) and D.
+This may be unusual, but is, in fact surprisingly natural (or at least I
+found it so :-)).
+</p>
+
+<dl>
+<dt><b>AND</b></dt>
+<dd> "And" the test results so far with the following test.</dd><br>
+
+<dt><b>OR</b></dt>
+<dd> "Or" the test results so far with the following test.</dd><br>
+
+<dt><b>XOR</b></dt>
+<dd> "Xor" the test results so far with the following test.</dd><br>
+
+<dt><b>NOT</b></dt>
+<dd> Invert immediately following test. </dd></dl>
+
+<p>Logically enough, here are delimiters for conditional code.</p>
+
+<dl>
+<dt><b>ELSE</b></dt>
+<dd>Execute the following code, up to the next FIN, if the latest
+(compound) condition returned false.</dd><br>
+
+<dt><b>OTHERWISE</b></dt>
+<dd>An equivalent of &quot;else if&quot; in C or elsif in Perl. Useful for
+avoiding deeply nested if-then-else constructs.</dd><br>
+
+<dt><b>FIN</b></dt>
+<dd> Delimits the code associated with the most recent (compound) condition.
+Can be used interchangeably with EOI. </dd></dl>
+
+<hr class=dotted>
+<h3 id=iterators>Iteration</h3>
+
+<p>Next come the opcodes to do with iteration.</p>
+
+<dl>
+<dt><b>ITOBJ varname [{placename|varname*}] [objflag]</b></dt>
+
+<dd> Execute the following code up to the matching FIN repeatedly, with the
+value of the nominated "loop variable" becoming a reference to objects
+satisfying the optional location and/of flag/state constraints (or all object,
+if no constraints specified) in the order of their declaration.</dd><br>
+
+<dt><b>ITPLACE varname [{placename1|varname1*}, {placename2|varname2*}]</b></dt>
+<dd> Execute the following code up to the matching FIN repeatedly, with the
+value of the nominated "loop variable" running through the specified range of
+locations (default all declared locations) in the order of their
+declaration.</dd><br>
+
+<dt><b>ITERATE varname, {entname1|varname1*|const1}, {entname2|varname2*|const2}</b></dt>
+<dd> Execute the following code up to the matching FIN repeatedly, with the
+value of the nominated "loop variable" running through all values from
+entname1 to entname2 inclusive. If either of the two range delimiting entnames
+is a variable, its value is used as the appropriate loop boundary (this may
+but need not be the reference number of some other entity). If either is a
+constant, the value of the constant is used. Otherwise the reference number of
+the nominated entity is used.</dd><br>
+
+<dt><b>NEXT<br>
+CONTINUE</b></dt>
+<dd> Skip the rest of the iteration block and proceed with the next iteration
+loop.</dd><br>
+
+<dt><b>BREAK<br>
+LAST</b></dt>
+<dd> Break out of the innermost iteration block.</dd><br>
+
+<dt><b>DOALL [{placename|varname*}] [objflag]</b></dt>
+<dd>DOALL starts
+off a do-all loop, in which the REPEAT cycle is repeated, but instead of
+querying the player for input, input is constructed out of the verb in ARG1
+and the next object fitting the specified criteria. The loop is terminated
+either when no more objects fit the criteria or when the FLUSH directive is
+executed.</dd><br>
+
+<dt><b>FLUSH</b></dt>
+<dd>Abort the do-all loop if one executing and flush the command line buffer
+</dd>
+</dl><br>
+
+<hr class=dotted>
+<h3 id=flow>Execution flow control</h3>
+
+<dl>
+
+<dt><b>CALL {procname|placename|verbname|varname*}</b></dt>
+<dd>Execute code associated with the named entity, which may consist of one or
+more separate, identically named chunks of code. These are executed in the
+order of their declaration, until either none left or one of RETURN, QUIT
+or QUIT-implying opcodes is executed in one of them.</dd><br>
+
+<dt><b>PROCEED </b></dt>
+<dd>Terminate the execution of the current procedure. If the procedure is one
+of a group of procedures of the same name, the next procedure in the sequence
+(in the order of declaration) is executed.</dd><br>
+
+<dt><b>RETURN<dt></b></dt>
+<dd>Terminates the execution of the current procedure and of all procedures
+within the group of procedures of the same name</dd><br>
+
+<dt><b>QUIT</b></dt>
+<dd>Abort execution of the current procedure and restart the REPEAT loop at
+the first REPEAT procedure.</dd><br>
+
+<dt><b>STOP</b></dt>
+<dd> Terminate the whole program immediately.</dd><br>
+
+<hr class=dotted>
+<h3 id=moving>Moving player and objects</h3>
+
+<dt><b>APPORT {objname|varname*} {placename|varname2*}</b></dt>
+<dd>Transport the indicated object to the indicated location.</dd><br>
+
+<dt><b>GET {objname|varname*}</b></dt>
+<dd>Transport the indicated object into the player's hands. Equivalent to
+"APPORT {objname|varname*}, INHAND".</dd><br>
+
+<dt><b>DROP objname*</b></dt>
+<dd>Transport the indicated object (presumed to be in player's hands (location
+INHAND) to the same location as the player).
+Equivalent to<br>
+<pre>
+   IFAT {objname|varname*}, INHAND
+     APPORT {objname|varname*} HERE
+   FIN
+</pre>
+</dd><br>
+
+<dt><b>GOTO {placename|varname*}</b></dt>
+<dd>Transport player to the indicated location.</dd>
+
+<dt><b>MOVE [word [...]] {placename|varname*}</b></dt>
+<dd>If no word list supplied or if any of the supplied words appear in the
+player's command, transport the player to the indicated location and
+restart the main loop (the REPEAT loop).Equivalent to (if a word list is
+present)<br>
+<pre>
+   IFANY [word [...]]
+      GOTO {placename|varname*}
+      QUIT
+   FIN
+</pre>
+</dd><br>
+
+<dt><b>SMOVE [word [...]] {placename|varname1*} {textname|varname2*}</b></dt>
+<dd>If no word list supplied or if any of the supplied words appear in the
+player's command, transport the player to the indicated location and display
+the indicated text, then restart the main loop. If a  word list is present,
+equivalent to<br>
+<pre>
+   IFANY [word [...]]
+      SAY {textname|varname1*}
+      GOTO {placemname|varname2*}
+      QUIT
+   FIN
+</dd></dl>
+
+<hr class=dotted>
+<h3 id=output>Generating and manipulating output</h3>
+
+<p>There are several directives for producing text output. All of them can be
+"qualified" for the purposes of "#" and "$" substitution and/or of the text
+switch mechanism. The VALUE qualifier is mandatory, but both SAY and QUIP can
+be used with a single argument. If the argument is an object or a place
+(possibly indirectly pointed to through a variable), the current state value
+of the object or place is used as the implicit qualifier. See
+<a href="acode-texts.html">a separate document</a> for a full explanation of
+A-code texts.</p>
+
+<dl> <dt><b>SAY {entname|varname*} [{entname|constant}]</b></dt>
+
+<dd>Display text associated with the specified entity (text, object, place or
+any of these indirected through a variable), possibly modifying the text with
+the value of the qualifying entity/constant; any embedded # signs are replaced
+by the name of the qualifying entity and embedded $ signs with its value,
+while text switches are governed by qualifier's value.</dd><br>
+
+<dt><b>RESAY {entname|varname*} [{entname|constant}]</b></dt>
+<dd>Just like SAY, except that any text accumulated but not yet displayed is
+discarded first.</dd><br>
+
+<dt><b>QUIP {entname|varname*} [{entname2|constant}]</b></dt>
+<dd>Like SAY, but perform a QUIT having output the text</dd><br>
+
+<dt><b>RESPOND word [word [...]] {entname|varname*} [{entname2|constant}]</b></dt>
+Like QUIP, but null effect unless one of the listed words is present in the
+<dd>player's command.</dd><br>
+
+<dt><b>APPEND {entname|varname*} [{entname|constant}]</b></dt>
+<dd>Like SAY, but it first eliminates any trailing line feeds (if any) in the
+output accumulated so far and replaces them with a single blank. That is, it
+appends its text to the preceding paragraph.</dd><br>
+
+<dt><b>DESCRIBE {placename|objname|varname*}</b></dt>
+Outputs the long description of the indicated object or location.
+<dd></dd><br>
+
+<dt><b>VOCAB {objname|placename} [flagname] [textname]</b><br>
+<b>VOCAB word {objname|placename} flagname [textname]</b><br>
+<b>VOCAB [textname]</b></dt>
+<dd>Used for displaying context-sensitive vocabulary. The first of the above
+three formats displays either primary name of the object or place in question,
+or the text specified as the last argument, unless the flagname argument is
+present and the flag in question is not set for that object or place. For
+example:<br>
+<pre>
+   VOCAB CAGE, SEEN 
+   VOCAB DWARF, SEEN, DWARF.VOC
+</pre>
+The second format applies to words which are neither places nor objects, but
+their listing should be regulated by a flag setting of some object or place.
+For example:<br>
+<pre>
+   VOCAB CHASM, SW.OF.CHASM, BEEN.HERE
+</pre>
+The display, if any, is prefixed with a comma and a space, except for the
+first word displayed. The count of words displayed is reset to zero by a VOCAB
+directive with no arguments or with just the textname argument.
+</dd></dl>
+
+<dt><b>TIE textname [textname2...] [entname|textname]</b></dt>
+<dd>Ties the value of the text (or texts) to that of the indicated entity
+or text. (See <a href="acode-texts.html">the A-code texts</a> documentation
+for an explanation of text values.) The effect is that the value(s) of text(s)
+being tied are automatically kept in step with the value of the entity or text
+given as the last argument.</dd>
+</dl><br>
+
+<hr class=dotted>
+<h3 id=arithmetic>Arithmetical operations</h3>
+
+<dl> <dt><b>SET entname {entname|constant}</b></dt>
+<dd>Set the value of the entity given as the first argument, to the value of
+the constant or entity given as the second argument. Note that <b>no</b>
+indirection occurs with this opcode. If the first argument is an "indirector"
+variable, SETting it reverts it to an ordinary variable. Use the DEPOSIT
+opcode to SET with indirection.</dd><br>
+
+<dt><b>ADD entname {entname|constant}</b></dt>
+<dd>Increase the value of the entity supplied as the first argument, by the
+value of the constant or entity supplied as the second. Note, that <b>no</b>
+indirection takes place!</dd><br>
+
+<dt><b>SUB entname {entname|constant}</b></dt>
+<dd>Decrease the value of the entity supplied as the first argument, by the
+value of the constant or entity supplied as the second. Note, that <b>no</b>
+indirection takes place!</dd><br>
+
+<dt><b>MULTIPLY entname {entname|constant}</b></dt>
+<dd>Set the value of the nominated entity to its original value multiplied by
+the value of the second argument. Note, that <b>no</b> indirection takes
+place!</dd><br>
+
+<dt><b>DIVIDE entname {entname|constant}</b></dt>
+<dd>Set the value of the nominated entity to its original value divided by the
+value of the second argument. Note, that <b>no</b> indirection takes
+place!</dd><br>
+
+<dt><b>INTERSECT entname {entname|constant}</b></dt>
+<dd>Set the value of the nominated entity to the bit-wise "and" of its
+original value and the value of the second argument. Note that <b>no</b>
+indirection takes place!</dd><br>
+
+<dt><b>NEGATE entname</b></dt>
+<dd>Set the value of the nominated entity to its original value negated. Note,
+that <b>no</b> indirection takes place!</dd>
+
+<hr class=dotted>
+<h3 id=randomisation>Randomisation</h3>
+
+<dt><b>RANDOM entname {entname|constant}</b></dt>
+<dd>Set the value of the entity indicated by the first argument to an integer
+chosen randomly from the interval between zero (inclusive) and the value of
+the entity or constant given as the second argument (exclusive). E.g. RANDOM
+CLOCK 10 will set the value of CLOCK at random to an integer number from 0 to
+9. Note that <b>no</b> indirection takes place.</dd><br>
+
+<dt><b>RANDSEL varname, entname1, entname2, [...]<br>
+RANDSELECT varname, entname1, entname2, [...]</b></dt>
+<dd>Selects at random (i.e. with equal probability) one of the listed
+entities and makes its first argument into a pointer to that entity.</dd><br>
+
+<dt><b>CHOOSE entnam {entnam2|constant2} {entnam3|constant3}</b></dt>
+<dd> Set the value of the entity indicated by the first argument to a random
+integer from the interval indicated by the second and the third arguments. If
+these latter arguments are both constants or variables, their values are used
+to determine the interval boundaries. However, for any entities other than
+variables, the reference numbers of the two entities are used instead. The
+randomisation is inclusive of the interval boundary values. E.g. CHOOSE VAR1
+20 29 will set the value of VAR1 to a random integer between 20 and 29
+inclusive, while CHOOSE VAR1 FIRST.QUIP, LAST.QUIP (where the two "quips" are
+not variables but text names) will load into VAR1 the reference number of
+an entity (text in this case) randomly chosen from between FIRST.QUIP and
+LAST.QUIP inclusive (there may well be some unnamed texts between these
+two).</dd><br>
+
+<dt><b>RANDOMISE {objname|placename}, constant</b></dt>
+<dd>Set state of the object or place to a random value between the base lower
+bound indicated by the constant (usually 0), and the highest numbered text
+switch component in any of the object's or location's description.</dd>
+</dl><br>
+
+<hr class=dotted>
+<h3 id=refman>Refno manipulation</h3>
+
+<dl><dt><b>LDA varname, entname</b></dt>
+<dd>Make the variable specified by the first argument "indirect" to to entity
+specified by the second.</dd><br>
+
+<dt><b>EVAL varname varname</b></dt>
+<dd>Set the value of the variable specified by the first argument to the value
+of the entity "indirected" through the second argument. Please note that no
+check is made to verify that the second argument "indirects" anything
+meaningful.</dd><br>
+
+<dt><b>DEPOSIT varname {varname|constant}</b></dt>
+<dd>Set the value of the entity "indirected" by the first argument to the
+value specified by the second. Note that no check is made whether the first
+argument truly indirects to some other entity.</dd><br>
+
+<dt><b>LOCATE varname objname*</b></dt>
+<dd>Make the indicated variable into an "indirector" for the location
+currently holding the indicated object.</dd>
+</dl><br>
+
+<hr class=dotted>
+<h3 id=flagging>Manipulating flags</h3>
+
+<dl><dt><b>FLAG</b></dt>
+<dd>Switch on the flag identified by "flagname" in the instance of the
+appropriate flag set belonging to the indicated entity.</dd><br>
+
+<dt><b>UNFLAG</b></dt>
+<dd>Switch off the flag identified by "flagname" in the instance of the
+appropriate flag set belonging to the indicated entity. </dd></dl>
+
+<hr class=dotted>
+<h3 id=environment>Communicating with the machine environment</h3>
+
+<dl><dt><b>EXEC {varname|constant}, varname</b></dt>
+<dd>Perform a special action, indicated by the value of the first argument,
+and return the result in the value of the variable given as the second
+argument. This opcode is to do awkward things, which are not allowed for in
+A-code opcode definitions or are far easier done in C than in A-code. All
+these special actions are performed in the adv00.c procedure special(). As
+supplied the following actions can be selected by the appropriate value of the
+first argument: the value</dd><br>
+
+<ol> 
+<li>dump game to disc (obsolete &ndash; use SAVE FILE instead)
+<li>restore game from disc (obsolete &ndash; use RESTORE FILE)
+<li>delete saved game(obsolete &ndash; use DELETE FILE) 
+<li>Obsolete &ndash; Adv550 legacy only (flush game cache)
+<li>Obsolete &ndash; Adv550 legacy only (get prime time flag)
+<li>save value of a variable (obsolete &ndash; use local variables instead)
+<li>restore value of a variable (obsolete &ndash; use local variables instead)
+<li>get number of minutes since restored game saved
+<li>set the value (pointer!) of ARG1
+<li>set the value (pointer!) of ARG2
+<li>pretend player said "X X" instead of "X"
+<li>check for end of player's (possibly compound) command (obsolete &ndash;
+  use IFHAVECMD insttead)
+<li>(spare)
+<li>retrieve a persistent data flag (should be part of IFFLAG?)
+<li>store a persistent data flag (should be part of FLAG?)
+<li>delete a persistent data flag (should be part of UNFLAG?)
+<li>save current location of all objects (should be part of SAVE?)
+<li>retrieve saved location of an object (should be part of RESTORE?)
+<li>toggle output text justification
+<li>set screen width (in fixed font characters)
+<li>set page margin (in fixed font characters)
+<li>set screen height (in lines)
+<li>save player's command (obsolete &ndash; use SAVE COMMAND instead)
+<li>restore player's command (obsolete &ndash; use RESTORE COMMAND instead)
+<li>(spare)
+<li>(spare)
+<li>if player command is &quot;SAY &lt;word&gt;&quot;, echo &quot;OK - &quot;word&quot;&quot;
+<li>recover from failed restore
+<li>swap ARG1 and ARG2 
+<li>(spare)
+<li>(spare)
+<li>check object being on the exception list
+<li>check existence of a memory save
+<li>list available saved games
+</ol>
+
+<p>Any number of other special action may be defined, but codes up to and
+including 100 are <b>reserved for future use</b> by the engine.</p>
+
+<p>Get and manipulate player input.</p>
+
+<dl><dt><b>INPUT [{textname|varname*}]</b></dt>
+<dd>Input and parse a command, setting the mandatory variables ARG1 and ARG2
+to the supplied verb and noun respectively. If only a single word is given and
+the mandatory flag PLS.CLARIFY of the mandatory variable STATUS is set, the
+supplied word is combined with the last (incomplete) command.</dd><br>
+
+<p>Note that the player is queried for input only if we have run out of the
+last command line. There are three circumstances under which the player is not
+prompted:</p>
+
+<ol>
+<li> He gave several commands separated by full stops or semicolons and we
+have not processed the last one yet.</li>
+
+<li>The last processed command consisted of a verb followed by several nouns
+and we haven't yet finished applying the verb to all the nouns. This case does
+not preclude case (a) also applying!</li>
+
+<li>We are in a doall loop, applying the verb of the last processed command to
+all objects satisfying the criteria of the DOALL opcode, which started the
+loop &ndash; and there is at least one more object to process. Again, this
+case does not preclude either of the two preceding cases applying
+simultaneously.</li>
+</ol>
+
+<p>If the optional argument is supplied, the nominated text is displayed,
+before accepting player's input. Whether or not this happens, if the last
+printed text was a "fragment", it is pushed out as the prompt and padded with
+a space, if required. If the last message was not a fragment, the player is
+prompted by the standard linefeed and question mark prompt. Note that this
+allows you to have any prompt you like, instead of the standard one.</p>
+
+<dt><b>FAKEARG [{entname1|varname1*}] [{entname2|varname2*}]</b></dt>
+<dd>Of player's command refers to an entity referenced (possibly indirectly)
+by the first argument, pretend that the reference was to the entity referenced
+by the second argument. This directive does not, however, alter the words of
+the command.</dd><br>
+
+<dt><b>FAKECOM [{entname1|varname1*}] [{entname2|varname2*}]</b></dt>
+<dd>Like FAKEARG, except that the relevant word in the player's command is
+also modified, in case it is echoed back at the player.</dd><br>
+
+<dt><b>VERBATIM {ARG1|ARG2}</b></dt>
+<dd>Replaces the word string associated with ARG1 or ARG2 respectively, with
+whatever the player actually used, which got interpreted as whatever word
+string that is to be replaced.</dd><br>
+
+<dt><b>UNDO</b></dt>
+<dd>If undo is permitted, undo the number of commands specified by
+player command's second word, which may be (a) a number to undo a specific
+number of commands, (b) ALL to undo all commands since the last restore, or 
+(c) UNDO to undo the immediately preceding UNDO. The UNDO_TRIM flag
+of the UNDO_STATUS variable is set or cleared appropriately.</dd><br>
+
+<dt><b>REDO</b></dt>
+<dd>Only accepted immediately after an UNDO command. REDO reverts the undoing
+of the specified number of commands, which may be given as (a) a number or (b)
+ALL which is equivalent to UNDO UNDO.  The UNDO_TRIM flag of the UNDO_STATUS
+variable is set or cleared appropriately.
+</dd><br>
+
+<dt><b>DEFAULT [{placename|varname*}] [objflag]</b></dt>
+
+<dd>If no object has been specified in the player's last command (i.e. if the
+value of STATUS is 1), check whether there is an object at the nominated
+location (default HERE) and, optionally, has the nominated flag set. If no
+such object exists, this directive has no effect. If only one object satisfies
+the criteria, ARG2 is set as if the player had explicitly nominated that
+object. If more than one object fits the criteria, ARG2 is set to AMBIGWORD.
+In either case, the value of STATUS is increased from 1 to 2.
+</dd>
+
+</dl><br>
+
+<hr class=dotted>
+<h3 id=saves>Saving and restoring (file, memory or command)</h3>
+
+<dt><b>SAVE {FILE|MEMORY|COMMAND} varname</b></dt>
+<dd>SAVE FILE saves the current state of the game in a file nominated by the
+command text string associated with ARG2. SAVE MEMORY creates or replaces 
+an in -memory save image (this gets written off to disk in ADVLIB and CGI 
+modes). SAVE COMMAND saves player's parsed command, so that the game
+can ask a yes/no (or other) question, without relying on the QUERY directive,
+since this directive is not compatible with ADVLIB or CGI modes.<br>&nbsp;<br>
+The variable specified by the &lt;varname&gt; argument returns zero on success.
+Non-zero return indicates failure.
+</dd><br>
+
+<dt><b>RESTORE {FILE|MEMORY|COMMAND} varname</b></dt>
+<dd>Restores file, memory image or player command saved by the SAVE directive.
+<br>&nbsp;<br> The variable specified by the &lt;varname&gt; argument returns
+zero on success. Non-zero return indicates failure.
+<dd></dd><br>
+
+<dt><b>DELETE {FILE|MEMORY} varname</b></dt>
+<dd>Deletes respectively a saved file nominated by the second word of the
+player's command, or the saved memory image (which also can be a file, in an
+ADVLIB or CGI modes). <br>&nbsp;<br> The variable specified by the
+&lt;varname&gt; argument returns zero on success. Non-zero return indicates
+failure.
+</dd><br>
+
+<hr class=dotted>
+<h3 id=debug>Debugging tools.</h3>
+
+<dt><b>CHECKPOINT</b></dt>
+<dd>SAYs its location (file name and line number) in the A-code
+source.</dd><br>
+
+<dt><b>DUMP</b></dt>
+<dd>Dumps to STDOUT the contents of the game's data array.</dd>
+
+</dl>
+
+<hr><h2 id=obsolete>Obsolete and/or deprecated lexicals and directives</h2>
+
+<p>These directives are still supported for compatibility with old versions of
+A-code. Some are supported only for style 1 of A-code (i.e. only for Platt's
+original source).</p>
+
+<dl>
+
+<dt><b>Compound constants</b><dt>
+
+<dd>A compund constant is a text string with no spaces, where names of simple
+constants or entitynames are joined by plus and/or minus
+signs.E.g. LAST.DEFLECTOR-FIRST.DEFLECTOR+2 evaluates as the
+value of LAST.DEFLECTOR minus the value of FIRST.DEFLECTOR plus 2. For entity
+names the value used in the calculation is the refno of that entity. In this
+example from Adv550, the two symbolic names happen to be text names.</dd><br>
+
+<dt><b>SYNON {value|symbname}, synon [...]</b></dt>
+<dd>Used to define symbolic name for constants or synonyms for already defined
+symbols.</dd><br>
+
+<dt><b>BISET {entname|varname*}, flagname<br>
+BIS {entname|varname*}, flagname</b></dt>
+<dd>Obsolete synonym of FLAG.</dd><br>
+
+<dt><b>BITST {entname|varname*}, flagname<br> <dt>
+BIT {entname|varname*}, flagname</b></dt>
+
+<dd>Obsolete synonym of IFFLAG.</dd><br>
+
+<dt><b>BICLEAR {entname|varname*}, flagname<br>
+BIC {entname|varname*}, flagname</b></dt>
+
+<dd>Obsolete synonym of UNFLAG.</dd><br>
+
+<dt><b>LABEL procname</b></dt>
+<dd>Synonymous with PROC.</dd><br>
+
+<dt><b>NAME entname, qualifier</b></dt>
+<dd>Synonym of SAY, except that the qualifier is mandatory.</dd><br>
+
+<dt><b>DEFINE placename</b></dt>
+<dd>Add the placename to player's vocabulary. The recommended way of doing
+this is by prefixing the placename with the + sign in its declaration</dd><br>
+
+<dt><b>EOI</b></dt>
+<dd>Closes an iteration loop. Use FIN instead!</dd><br>
+
+<dt><b>EOF</b></dt>
+<dd>Used in Platt's code as a short-hand for an arbitrary number
+of successive FINs.</dd><br>
+
+<dt><b>DBNAME database-name</b></dt>
+<dd>Defines the name of the data file.</dd><br>
+
+<dt><b>TITLE title</b></dt>
+<dd>Older synonym of DBNAME.</dd><br>
+
+<dt><b>KEYWORD word [...]</b></dt>
+<dd> If all indicated words (or their synonyms) appear in input, execute the
+following code, up to the next major directive; otherwise PROCEED.</dd><br>
+
+<dt><b>HAVE {objname|varname*} [...]</b></dt>
+<dd> If all indicated objects are held by player (at location INHAND), execute
+the following statements up to the next major directive; otherwise PROCEED.</dd><br>
+
+<dt><b>HERE {objname|varname*} [...]</b></dt>
+<dd> If all indicated objects are at the same location as the player
+(specified by the variable HERE), execute the following code, up to the next
+major directive; otherwise PROCEED. There was no corresponding opcode in the
+original A-code.</dd><br>
+
+<dt><b>NEAR {objname|varname*} [...]</b></dt>
+<dd> If all indicated objects are either held by the player (at location
+INHAND) or at the same location as the player (as specified by the variable
+HERE), execute the following code up to the next major directive; otherwise
+PROCEED.</dd><br>
+
+<dt><b>AT {placename|varname*} [...]</b></dt>
+<dd> If the player is at (any of) the indicated location(s), execute the
+following code, up to the next major directive; otherwise PROCEED. Don't worry
+about the name of this opcode clashing with the AT major directive &ndash; they
+exist in different name spaces, major directives being recognised by starting
+in column one. Note that the "place" may be an object!</dd><br>
+
+<dt><b>ANYOF word [...]</b></dt>
+
+<dd> If the player typed any of the indicated words in the command being
+processed, execute the following code, up to the next major directive;
+otherwise PROCEED. If successive lines have the ANYOF opcode, they are merged
+internally into a single ANYOF directive. If any of indicated words are in
+command do following; else PROCEED</dd></dl>
+
+<dt><b>VALUE entname* [{entname|constant}]</b></dt>
+<dd>Like SAY, but replace '#' with value of the qualifier, rather than the
+qualifying entity name.</dd><br>
+
+<dt><b>SVAR {varname|constant}, varname</b></dt>
+<dd>Set value of the variable nominated in the second argument, according to
+the value of an environmental variable (or condition) indicated by the value
+of the first argument. Supported only for the sake of Platt's original
+code of Adv550, which uses SVAR 4 and SVAR 5 to regulate timing of
+game restores.</dd>
+
+</dl><br>
+
+<hr>
+<h2 id=history>A-code history</h2>
+
+<p>The A-code language was created by Dave Platt in early 1980s for the
+purpose of writing his classic 550 expansion of the original Adventure. It was
+subsequently expanded by myself in mid 1980s when merging Platt's Adventure 3
+(now known as Adv550 ) with Luckett's and Pike's AdventureII (now known as
+Adv440) into Adv660 (well... into Adventure4, upgraded to Adventure4+, now
+known as Adv660).</p>
+
+<p>I embarked on further expanding Adv660 into Adv770 in 1998, one of the
+purposes of the exercise being to explore further possibilities for improving
+A-code. The final result was the considerably improved Acode12. A <a
+href="acode-history.html">separate document</a> describes the history of the
+language in greater detail.</p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

@@ -1,0 +1,456 @@
+<html>
+<head>
+<title>Using advbld</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>Using the <i>advbld</i> script</h2>
+<table class=centab><tr><td>
+<ul>
+<li><a href=#require>Requirements</a></li>
+<li><a href=#assumptions>Assumptions</a></li>
+<li><a href=#basic>Basic usage</a></li>
+<li><a href=#advanced>Advanced usage</a></li>
+<li><a href=#brief>Brief options summary</a></li>
+<li><a href=#full>Options explained</a></li>
+</ul>
+</td></tr></table>
+
+<p>My main tool for building A-code games is <b>advbld</b> &ndash; a
+<i>bash</i> script for building various modes of A-code games from their
+A-code sources (or from derived C ones). It can be found in the <i>bin</i>
+sub-directory of the directory tree supplied in the stand-alone A-code source
+tarball <a href='https://mipmip.org/acode/acode-12.82.tgz'>A-code source
+tarball</a> and also bundled with A-code sources of individual games.</p>
+
+<hr id=require>
+<h3>Requirements</h3>
+
+<p>The script should be usable on any Unix-like system which supports the GNU
+<i>bash</i> shell (version 3 or later) &ndash; i.e. Linux, various versions of
+Unix, MacOS and these days, perhaps even Windows under LSW.</p>
+
+<p>For its simplest functionality, the script requires nothing more than the
+presence of an ANSI C compiler (e.g. <i>gcc</i> or <i>clang</i>) invokable as
+<i>cc</i>. The JavaScript/HTML build also requires Emscripten, while a Qt5
+build needs Qt5WebKit and Qt5WebKitWidgets libraries, usually not installed by
+default with Qt5.<p>
+
+<p>If GNU <i>readline</i> and <i>ncurses</i> libraries are present, these will
+be automatically used if necessary. Without them, the console build of games
+will lack command editing functionality.</p>
+
+<hr id=assumptions>
+<h3>Assumptions</h3>
+
+<p>The script makes some important assumptions.</p>
+
+<ul> 
+
+<li><p>The script needs to use the <i>acdc</i> translator and kernel files.
+Directories containing these are assumed to be found alongide the script's
+directory, as supplied in the tarball. It follows that the script
+should be invoked where it is, in its <i>bin/</i> directory. You can invoke it
+by its pathname, of you can add that <i>bin/</i> directory to the command
+search path.</p></li>
+
+<li><p>The <i>acdc</i> translator demands that all A-code source files have
+the <b>.acd</b> suffix. If a file name is specified (be it on the command
+line or by the INCLUDE ditective in the code) without this suffix, it will be
+automatically appended before any attempt to open the file.</p></li>
+
+<li><p>
+Unless the script is given the pathname of the game's source, it needs to be
+able to make a reasonable guess as to what source file should be used. To
+do so, it assumes that game source file(s) live in a directory of the same
+name as the name of te game, possibly tagged with the game version number.
+So for example, the main source file of adv770 is assumed to be
+<b>adv770.acd</b> to be found in the directry called <b>adv770</b> or
+e.g. <b>adv770-2.19</b>.
+</p></li>
+
+<li><p>By convention, sources found in a directory without a version
+number tag are deemed to be &quot;unstable&quot; &ndash; i.e. under
+development, whereas directories tagged by a version number are assumed to
+hold stable game versions. This distinction is only of use to game
+developers.</p></li>
+
+</ul>
+
+<hr id=basic>
+<h3>Basic use of <i>advbld</i></h3>
+
+<p>The most straightforward, though not always the most convenient, way
+to use the script is to supply it with the pathname of a game's source
+file.</p>
+
+<pre>
+  $ advbld ~/games/adv770/adv770.acd
+</pre>
+
+<p>or alternatively</p>
+
+<pre>
+  $ cd ~/games/adv770
+  $ advbld adv770.acd
+</pre>
+
+<p>The <i>.acd</i> suffix can be dropped &ndash; if absent, it will be
+automatically appended by <i>acdc</i>.</p>
+
+<p>Perhaps more conveniently, the script can infer the name of the main source
+file from the name of the current directory. So for example</p>
+
+<pre>
+  $ cd ~/games/adv770-2.19
+  $ advbld
+</pre>
+
+<p>works too. The script will take the name of the current directory,
+stripping off the version number if necessary, and then look for a file named
+<b>adv770.acd</b> or <b>main.acd</b> or <b>game.acd</b>.</p>
+
+<p>If a game is specified just by name and there is no game file of the
+corresponding name in the current directory, it will be searched for &ndash;
+the directory specified by the environment variable <b>$ADVDIR</b>, if this is
+set, and then in the likely places relative to the location of the
+<i>advbld</i> script itself. The upshot is that in most cases you can just
+type e.g. &quot;advbld adv770&quot; and let the script do the finding. For
+more details, see the next section on advanced uses of the script.</p>
+
+<p>In all cases, the executable will be built in the same directory in which
+the game source is located.</p>
+
+<p>By default, the script build the combined browser/console executable.
+Simply running this executable will invoke your default browser and use that
+as the game interface. Alternatively, if invoked with the <b>-C</b> command
+line option, it will run simply as a console mode program. See the next
+section for other build modes.</p>
+
+<hr id=advanced>
+<h3>Advanced use of <i>advbld</i></h3>
+
+<p>As supplied, the A-code sources tarball has the following directory
+hierarchy:</p>
+
+<table class=centab><tr><td><b>
+<pre>                      acode-12.82
+                           │
+      ┌─────────────┬──────┴──────┬─────────────┐
+      │             │             │             │
+  acdc-12.42       bin           doc       kernel-12.82
+</pre></b></td></tr></table></p>
+
+<p>The <i>advbld</i> script can be found in the <i>bin</i> sub-directory of the
+directory tree supplied in the <a
+href='https://mipmip.org/acode/acode-12.82.tgz'>A-code tools tarball</a>.
+You can change the name of the top directory of that tree, but the rest of it must
+stay as supplied in order for <i>advbld</i> to work. The tarball does
+not contain an executable of the <i>acdc</i> translator. It will be
+build by the script automatically the first time it is required using
+an ANSI C compiler invokable as <i>cc</i>.</p>
+
+<p>The <i>acdc</i> and <i>kernel</i> sub-directories can be versioned
+(e.g. <i>acdc-12.42</i>) or non-versioned (e.g. just <i>acdc</i>).
+By convention, directories without version numbers contain
+&quot;unstable&quot; code &ndash; still under development. Versioned
+directories contain stable code of the appropriate version.</p>
+
+<p>By default, the <i>advbld</i> script will use either non-versioned
+directories for acdc, kernel and whatever game is being built, or failing
+that, the directory of the right name with the highest version number
+available. This default behaviour can be modified by invocation options used.
+For example, one can supply a game name with its version number, to force the
+particular version of the game code to be built. Or one can use the -s
+option, to ignore non-stable code.</p>
+
+<p>When searching for a game specified just by its name, which is not found in
+either in the current directory or in an appropriately named sub-directory of
+$ADVDIR (if this is set), the script will look first alongside its <b>bin</b>
+directory or alongisde its parent (acode-12.82 in the above diagram).</p>
+
+<p>If you wish to build a game in the HTML/JavaScript
+mode, you will also need to install and configure Emscripten (<a
+href="https://kripken.github.io/emscripten-site/">https://kripken.github.io/emscripten-site/</a>).</p>
+
+<p>A QT5 build requires Qt5 installed and dev versions of these libraries:
+Qt5Core, Qt5Widgets, Qt5 Gui, Qt5WebKit and Qt5WebKitWidgets.</p>
+
+<p>If you have Perl installed, the script can generate sorted cross-reference
+lists of game A-code sources.</p>
+
+<p>Usage: <b>advbld [options] [game]</b></p>
+
+<p>To build a game, <i>advbld</i> needs: game source(s), the acdc translator
+and the A-code kernel files. All of these are expected to be found in sub-directories
+of the parent directory of the one containing the <i>advbld</i> script.</p>
+
+<p>The directory containing game source(s) is assumed to bear the name of the game
+itself, possibly suffixed with a version number (e.g. adv770 or
+adv770-2.19).</p>
+
+<p>The <i>acdc</i> translator is expected to be found in the directory called
+'acdc'. If this is absent, directories named 'acdc-&lt;version&gt;' (e.g.
+'acdc-12.36') are examined and the one with the highest version number is
+used. (The non-versioned directory is assumed to contain unstable sources and is
+ignored if a stable build is requested.)</p>
+
+<p>Similarly, the kernel files are assumed to be either in the directory called
+'kernel', or (if this is absent or if a stable build is requested) in the
+highest version number directory named 'kernel-&lt;version&gt;'.</p>
+
+<p>By default, <i>advbld</i> assumes the name of your current directory to be the
+name of the game to be built. If a game name is given, it will be assumed to
+live in a directory of that name alongside the directory containing the script itself.
+This is why game sources available from my <a
+href='https://mipmip.org'>mipmip.org</a> are supplied in a directory tree of the
+same name as the A-code tools one. The A-code tools and any game sources
+tarballs are guaranteed to co-exist peacefully within that top level directory
+with no clashes.</p>
+
+<p>For explanation of build modes available, please see <a href='acode-builds.html'>
+a separate page</a>.</p>
+
+<hr id=brief>
+
+<p>Here's a quick summary of <i>advbld</i> options (<a href='#full'> see
+below for more detailed explanations</a>).</p>
+
+<table>
+<tr><td colspan=3><b>Main build options</b></td></tr>
+<tr><td>&nbsp;&nbsp;-B</td><td>default; build a combined console/browser (HTTP) executable</td></tr>
+<tr><td>&nbsp;&nbsp;-C</td><td>build a console-only executable (no HTTP)</td></tr>
+<tr><td>&nbsp;&nbsp;-J</td><td>build an HTML/JavaScript version</td></tr>
+<tr><td>&nbsp;&nbsp;-L</td><td>build a test executable using the library mode</td></tr>
+<tr><td>&nbsp;&nbsp;-Q</td><td>build a QT5 executable</td></tr>
+<tr><td>&nbsp;&nbsp;-T</td><td>build a single turn (cloud) mode executable</td></tr>
+<tr><td>&nbsp;&nbsp;-W</td><td>include opt/debug.acd if it exists.
+  This option is compatible with all of the above build types.</td></tr>
+
+<tr><td colspan=2><b>Script display options</b></td></tr>
+<tr><td>&nbsp;&nbsp;-v</td><td>show more progress info</td></tr>
+<tr><td>&nbsp;&nbsp;-q</td><td>less progress info</td></tr>
+<tr><td>&nbsp;&nbsp;-x</td><td>echo commands being executed</td></tr>
+<tr><td>&nbsp;&nbsp;-h</td><td>show available options</td></tr>
+</table>
+
+<p> The rest of options are of use only to an A-code game developer.</p>
+
+<p>Versions of acdc, kernel and game are deemed "unstable" if the relevant
+directories lack a version number. The script defaults to using unstable
+versions, if present, and the latest (highest version number) versions
+otherwise.</p>
+
+<table>
+<tr><td colspan=2><b>Version-related options</b></td></tr>
+<tr><td>&nbsp;&nbsp;-s</td><td>use the latest <b>stable</b> versions of acdc and kernel (and game)</td></tr>
+<tr><td>&nbsp;&nbsp;-u</td><td>insist on using <b>unstable</b> versions of acdc and kernel (and game)</td></tr>
+<tr><td>&nbsp;&nbsp;-a&nbsp;&lt;version&gt;</td><td>use the specified version of acdc</td></tr>
+<tr><td>&nbsp;&nbsp;-k&nbsp;&lt;version&gt;</td><td>use the specified version of kernel</td></tr>
+
+<tr><td colspan=2><b>Options passed through to the C compiler</b></td></tr>
+<tr><td>&nbsp;&nbsp;-g</td><td>create a gdb-instrumented executable</td></tr>
+<tr><td>&nbsp;&nbsp;-gg</td><td>like -g plus gcc macro storing</td></tr>
+<tr><td>&nbsp;&nbsp;-D&lt;symbol&gt;</td><td>add a symbol to the C compilation command</td></tr>
+<tr><td>&nbsp;&nbsp;--m32</td><td>force building 32 bit executable, if possible</td></tr>
+
+<tr><td colspan=2><b>Options modifying <i>acdc</i> behaviour</b></td></tr>
+<tr><td>&nbsp;&nbsp;-p</td><td>(plain) don't encrypt game data</td></tr>
+<tr><td>&nbsp;&nbsp;-d</td><td>acdc's -debug &ndash; adds A-code lines as comments in derived C</td></tr>
+<tr><td>&nbsp;&nbsp;-c</td><td>translate A-code to C but do not build executable</td></tr>
+<tr><td>&nbsp;&nbsp;-b</td><td>don't translate A-code to C but do build executable</td></tr>
+<tr><td>&nbsp;&nbsp;-w</td><td>show acdc warnings, which are suppressed by default</td></tr>
+<tr><td>&nbsp;&nbsp;-X</td><td>generate A-code source cross-reference lists</td></tr>
+</table>
+
+<hr id=full><p>Now for some more details... Please note that the script
+may also understand some deprecated options not listed here. Those will 
+simply disappear in due time.</p>
+
+<p><b>Main build options</b></p><dl>
+
+<dt>&nbsp;&nbsp;&nbsp;-B (default)</dt>
+
+<dd><b>Browser/Console build</b><br>
+This option instructs <i>advbld</i> to build a
+browser-capable executable. By default such an executable uses a local browser
+for interacting with the players. The executable itself acts as a very simple
+HTTP server, passing player commands to the game, and game's responses to the
+player. The default browser is invoked for this purpose (in a manner
+appropriate to supported platforms), but a different browser can be nominated
+on the command line following this option, or by editing the .acode/acode.conf
+file. This build can be also used to play in a console (terminal) window 
+by invoking the executable with the -C option.</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-C</dt>
+
+<dd><b>Console mode build</b><br>The game executable expects to run in a
+console (or terminal) window. It offers the unique opportunity of adventuring
+the way it was on old slow output devices. The output speed in baud can
+be specified by adding &quot;-o &lt;baud&gt;&quot; to the invocation command line,
+where &quot;&lt;baud&gt; is a number such as 300 (old teletypes), 1200
+(DECwriters) etc...</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-L</dt>
+<dd><b>Library mode build</b><br> By default, A-code games are in control of
+the command/response loop, but this is not possible in some cases (e.g on
+IOs). This &quot;library&quot; option converts kernel's <i>main()</i> into
+<i>advturn()</i>, which returns every time the player is prompted for input.
+It is up to the calling program to obtain player command and to supply it in
+the next call to <i>advturn()</i>. Please see <a href='acode-advturn.html'>a
+separate document on details of the call interface.</a></dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-J</dt>
+<dd><b>JavaScript/HTML build</b><br>
+Building a JavaScript version requires presence of <i>emscripten</i> (see
+<a href="https://kripken.github.io/emscripten-site/">the emscripten home 
+page</a> for installation instructions). This option causes <i>advbld</i>
+to create a self-contained HTML/JavaScript page, which will run the game
+in any HTML5-compliant browser.
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-Q</dt>
+<dd><b>QT5 build</b><br>
+This build puts a QT5 wrapper around the library mode build. It requires
+dev versions of the following QT libraries: Qt5Core, Qt5Widgets, Qt5Gui,
+Qt5WebKit and Qt5WebKitWidgets.
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-T</dt>
+<dd><b>Single turn (cloud) build</b><br>
+The resulting executable is suitable for cloud use with a suitable front-end.
+It restores game in progress, takes player command as command line arguments,
+executes a single game turn, outputs the result on standard output as
+HTML-formatted text, saves game in progress and exits. A new game can be
+forced by using the -n command line keyword instead of player command. A save
+game can be loaded by starting the executable with -l &lt;saved_game&gt;. 
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-W</dt>
+<dd><b>Debug (wizard mode) build</b><br>
+If the file opt/debug.acd exists, it gets copied to the current directory
+before building the game. The copy is deleted after the build is complete.
+This mechanism presupposes debug.acd being conditionally included
+by the game's A-code source.</dd>
+
+</dl><p><b>Script display options</b></p><dl>
+
+<dt>&nbsp;&nbsp;&nbsp;-v</dt>
+<dd><b>Requests more progress info</b><br>
+Adds <i>acdc</i>'s report to the niformation being displayed.
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-q</dt>
+<dd><b>Requests less progress info</b><br>
+Only the final success (or error report) is produced.
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-x</dt>
+<dd>Echo commands being executed by the <i>advbld</i> script</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-h</dt>
+<dd>Show available options of the <i>advbld</i> script</dd>
+</dl>
+
+</dl><p><b>Version-related options</b></p><dl>
+
+<dt>&nbsp;&nbsp;&nbsp;-s</dt>
+<dd><b>Force use of the latest stable acdc and kernel (and game) versions
+</b><br> Stable kernel versions live in directories named
+<b>kernel-&lt;version&gt;</b>. Similarly for the <i>acdc</i> translator and
+individual games. This option overrides the default behaviour of preferring
+unstable versions of acdc, kernel and game code. Forces the use of the highest
+version number ones. Only of use to game developers.
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-u</dt>
+<dd><b>Forces use of the <i>un</i>stable acdc and kernel (and game) 
+versions</b><br>
+Only of use to game developers.
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-a &lt;version&gt;</dt>
+<dd>You may have older versions of <i>acdc</i> in directories called
+<b>acdc-&lt;version&gt;</b>. This option instructs <i>advbld</i> to use the
+specified <i>acdc</i> version, instead of searching for the most recent one.
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-k  &lt;version&gt;</dt>
+<dd>You may have older versions of the kernel in directories called
+<b>kernel-&lt;version&gt;</b>. This option instructs <i>advbld</i> to use the
+specified kernel version, instead of searching for the most recent one.
+</dd>
+
+</dl><p><b>Options passed through to the C compiler</b></p><dl>
+
+<dt>&nbsp;&nbsp;&nbsp;-g</dt>
+<dd><b>Create a gdb-instrumented executable</b></dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-gg</dt>
+<dd><b>As -g but forces use of gcc and makes macro definitions
+available to the gdb debugger. Note that this is <b>not</b>
+a GNU-style long option. It is in fact interpreted as -g -g.</b></dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-D&lt;symbol&gt;</dt>
+<dd><b>Define an additional compilation symbol</b><br>
+NB: you can (but need not) add a space between -D and the symbol name.</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;--m32</dt>
+<dd><b>Force 32 build</b><br>
+Only of use on 64 bit machines.</dd>
+
+</dl><p><b>Options modifying <i>acdc</i> behaviour</b></p><dl>
+
+<dt>&nbsp;&nbsp;&nbsp;-p</dt>
+<dd><b>(Plain) don't encrypt game data</b><br>
+By default game data (mostly text) is encrypted in order to make it harder
+to cheat by examining core dumps. The disadvantage of this is that executables
+are less compressible. 
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-d</dt>
+<dd><b>acdc's -debug &ndash; adds A-code lines as comments in derived C</b><br>
+In the absence of an A-code debugger, this is a moderately convenient way
+of debugging games on the A-code source level.
+</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-c</dt>
+<dd><b>Translate A-code to C but do not build executable</b><br>
+Just invokes <i>acdc</i> to translate game's A-code to C.</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-b</dt>
+<dd><b>Don't translate A-code to C but do build executable</b><br>
+This option omits running <i>acdc</i> &ndash; useful if temporarily
+tweaking translated C sources while debugging.</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-w</dt>
+<dd><b>Show <i>acdc</i> warnings</b><br>
+Warnings about unused symbols in the A-code source are suppressed 
+by default.</dd>
+
+<dt>&nbsp;&nbsp;&nbsp;-X</dt>
+<dd><b>Generate A-code cross-reference</b><br>
+Requests the <i>acdc</i> translator to construct sorted cross-reference
+lists of the A-code source</b></dd>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

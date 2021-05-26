@@ -1,0 +1,387 @@
+<html>
+<head>
+<title>Building from C sources</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>Building A-code games from C sources</h2>
+<h4 class=centered>(A-code version 12.82)</h4>
+
+<h3>Contents</h3>
+
+<ul>
+  <li><a href="#derived">Derived C sources</a></li>
+  <li><a href="#building">Building an executable from the C sources</a></li>
+  <ul>
+    <li><a href="#console">Console mode</a></li>
+    <li><a href="#browser">Broswer mode</a></li>
+    <li><a href="#cgi">Single turn mode</a></li>
+    <li><a href="#javascript">JavaScript/HTML mode</a></li>
+    <li><a href="#library">Library mode</a></li>
+  </ul>
+  <li><a href="#textdata">Appendix: Deprecated text data handling</a></li>
+  <li><a href="#symbols">Appendix: Kernel compilation symbols</a></li>
+</ul>
+
+<a name="derived">
+<p><hr></p>
+
+<h3>Derived C sources</h3>
+
+<p>A-code games are, naturally enough, written in A-code, which is an IF
+writing language originally created by David Platt when developing his Adv550
+superset of the original Adventure. However, the first step of converting
+A-code source files into an executable involves translating them into ANSI C.
+This is done by the <i>acdc</i> A-code to C translator and the process is
+covered in a <a href="acode-a-build.html">separate document</a>. Here I assume
+that you already have the derived C sources either downloaded as a part of the
+<a href="https://mipmip.org/acode/acode-12.82.tgz">overall A-code
+tarball</a> or produced by running the <i>acdc</i> translator yourself. The
+translator ANSI C sources are also included in the same tarball.
+</p>
+
+<hr>
+
+<a name="building">
+<h3>Building an executable from the C sources</h3>
+ 
+<p>A-code games can be built in 5 distinct modes: 
+<a href="#console">console</a>, <a href="#browser">browser</a>, 
+<a href="#cgi">single turn</a>, <a href="#javascript">HTML/JavaScript</a>
+and <a href="#library">library</a>.  This document explains the
+differences between these modes, their respective uses and the ways of
+building corresponding game versions from C sources.
+</p>
+
+<p>If your system does not have the unistd.h header file, you should add
+-DNO_UNISTD to all compilation commands given below. An 
+<a href="#symbols">appendix</a> lists and explains all compilation
+symbols that may be used in compiling A-code game C sources.</p>
+
+<!--
+<p>The Linux/Unix <i>advmake</i> script supplied as a part of the A-code
+framework can be used for all these different builds.
+</p>
+-->
+
+<hr>
+
+<h3 id=console class=centered>The <i>console</i> mode</h3>
+The console mode is how the original Adventure was initially played. It takes
+input directly from the player and outputs any responses in plain text to a
+"computer terminal" &ndash; these days most likely a terminal emulator window.
+Some players still prefer this mode and it is also very handy for debugging.
+</p>
+
+<p>
+While it still defaults to the dimensions of displays of ancient VDUs (24
+lines and 80 fixed font characters per line), other dimensions can be
+specified on the invocation command line by means of the -s option. The
+kernel also provides the necessary hooks for a game to permit changes to
+these defaults while playing.
+</p>
+
+<p>
+The console mode also offers a unique opportunity to experience an A-code game
+the way the original Adventure was played in 1970s/80s. The -o command line
+option allows the output speed to be set to the baud rate of 110 (a teletype),
+300 (earliest VDUs), 600, 1200, 2400, 4800 and 9600. Younger players are 
+hereby invited to marvel at the patience required to play at the lower speeds 
+(as we did!). 
+</p>
+
+<p> For the full list of console mode command line options, please see
+the document describing <a href="acode-comline.html">command line invocation</a>
+of A-code games.
+</p>
+
+<p>If you have the <i>readline</i> and <i>ncurses</i> libraries installed
+and available for linking (which probably needs a readline development
+package), all you need to do is to use an ANSI C compiler
+to compile and link the C files, specifying the console mode:</p>
+
+<p class=centered>cc -DCONSOLE *.c -lreadline -lncurses -o &lt;game-name&gt;</p>
+
+<p>If you do not have those libraries installed, you can still build a console
+mode executable, which will lack the facility of recalling and editing
+previous commands. To do so, just tell the compiler not to use
+<i>readline</i>:
+</p>
+
+<p class=centered>cc *.c -DCONSOLE -DNO_READLINE -o &lt;game-name&gt;</p>
+
+<hr class=dash>
+
+<h3 id=browser class=centered>The <i>browser</i> mode</h3>
+
+<p>
+In the browser mode, A-code games do not interact with the player directly,
+but instead invoke a local browser and use that to render game's output and to
+obtain player's commands. In this mode, an A-code game acts as a very simple
+HTTP server.
+</p>
+
+<p>
+Unless otherwise specified, the player's default browser is invoked, but
+another browser can be specified either on the invocation command line or by
+modifying the acode.config file created by the A-code kernel.
+</p>
+
+<p>The browser build of an A-code game automatically includes the console
+build (but not the other way around!). Thus a browser-build game can be
+invoked in the console mode by adding -C to the invocation command line.
+</p>
+
+<p>Building a browser mode executable is virtually the same as building a
+console mode one &ndash; you just drop the -DCONSOLE from the parameters given
+to the compiler. When a browser is being used to render game's output, there
+is no need for the readline library, so the basic browser mode build looks
+like this:</p>
+
+<p class=centered>cc *.c -DNO_READLINE -o &lt;game-name&gt;</p>
+
+<p>If you want the executable to offer command editing when run in the
+console mode, you will need to link in the two additional libraries:</p>
+
+<p class=centered>cc *.c -lreadline -lncurses -o &lt;game-name&gt; *.c</p>
+
+<hr class=dash>
+
+<h3 id=cgi class=centered>The <i>single turn</i> mode</h3>
+
+<p>Originally developed for CGI operation, games build in this mode are only
+suitable for running in a cloud, via a suitable front-end script, e.g. a
+cgi-bin or a PHP one. In this mode, the game executable is supplied a single
+command as a parameter on the invocation command line, sends the text
+generated in response to standard output and exits. (See the 
+<a href="acode-comline.html"> the command line options document</a> for details.)
+</p>
+
+<p>The actual interaction with the player is carried out by the  front
+end script, which repeatedly invokes the executable for successive game
+turns. The secret sauce is, of course, the player-invisible save and restore
+of the current state of the game. This mechanism got later adapted for use by
+other game modes, automatically giving all A-code games a persistent state. 
+</p>
+
+<p>In this mode all text output is HTML-formatted, though this can be
+overridden if necessary. All such text is also prefixed by a single character,
+which provides information to the wrapper script and is not expected to be
+displayed to the player.</p>
+
+<p>To build a single turn mode executable is very simple:</p>
+
+<p class=centered>cc *.c -DTURN -o &lt;game-name&gt;</p>
+
+<p>In this mode the executable is not responsible for acquiring player
+commands and thus there is no need to signal the absence of the
+readline library -- this is assumed automatically.</p>
+
+<hr class=dash>
+
+<h3 id=javascript class=centered>The <i>HTML/JavaScript</i> mode</h3>
+
+<p>Thanks to the magic of 
+<a href="http://kripken.github.io/emscripten-site/">emscripten</a>, A-code
+games can be built as pure (and purely local, with no network dependencies)
+HTML/JavaScript page, usable by any HTML5 compliant browser.  In this mode,
+A-code games run entirely within the player's browser and use browser's own
+sand-boxed file system for saving and restoring games.</p>
+
+<p>For building games in this mode you will need <i>emscripten</i> installed
+as well as its dependencies (<i>clang</i> and <i>cmake</i>). 
+Actually building a game involves two steps. Firstly the derived C
+sources (plus the kernel ones) are converted to JavaScript via this
+one-line command:</p>
+
+<p class=centered> emcc -Os -s ASM_JS=1 -s WASM=0 -s ENVIRONMENT=web -DJS
+adv*.c -Wno-parentheses-equality -lidbfs.js -s
+"EXTRA_EXPORTED_RUNTIME_METHODS=['cwrap']" --memory-init-file 0 -o acode.js -s
+EXPORTED_FUNCTIONS="['_advturn']" </p>
+
+<p>(That's the command line for Emscripten 1.39.6 -- experience suggests
+that later versions may require a change in some of the arguments.)</p> 
+
+<p>Secondly, the resulting <i>acode.js</i> file has to be merged into the
+<i>acode.html</i> template, which can be found in the tools directory to be
+found in the relevant A-code tarballs. This merging is achieved by (a)
+replacing all occurrences of the string %NAME% in the template by the name of
+the game being builds and (b) replacing the line consisting of the single token
+%JAVASCRIPT% with the contents of the JavaScript file generated by
+<i>emcc</i>.</p>
+
+<p>The resulting HTML file can be called anything you like, but it seems a
+good idea to replace 'acode' in its name with the actual name of the game.</p>
+
+<hr class=dash>
+
+<h3 id=library class=centered>The <i>library</i> mode</h3>
+
+<p>
+In some cases it is not feasible or appropriate for an A-code game to drive
+its own commend/response loop. App frameworks generally expect to do so
+themselves. This situation is handled by compiling derived C sources in the
+library mode:</p>
+
+<p class=centered>cc -c *.c -DADVLIB</p>
+
+<p>Compiled this way, instead of having a main() routine, the game has an
+advturn() one, which expects player input to be supplied via its arguments
+and returns a pointer to a text buffer containing the resulting text. As
+in the single turn mode, the returned text is prefixed with a single character
+denoting the nature of the text.</p>
+
+<p><a href="acode-advturn.html">A separate document</a> explains the details
+of the advturn() interface. However, for testing/debugging purposes I had to
+develop a simple C program, which uses the library mode and can be run in any
+terminal emulator. It's source, <i>libtest.c</i> can be found in the tools
+directory of an A-code tarball. </p>
+
+<hr>
+
+<a name="textdata">
+
+<h3><b>Appendix 1: Deprecated text data handling</b></h3>
+
+<p>By default, since version 12.01 of A-code, all text data is preloaded
+by the <b>acdc</b> translator into the game C-source, whereas previous
+versions by default stored text data in a separate .dat file.  The
+current arrangement is the simplest and most sensible one for most
+machines these days, but a few years ago I still saw some not entirely
+obsolete machines balking at the size of adv770 executable with
+preloaded data. Hence other options are also on offer, even if you
+don't have access to game A-code sources.</p>
+
+<ul>
+<p><li><b>Creating the text data file</b><br>
+Even though game C sources no longer come with the .dat text data file,
+this file can get automatically constructed by the game executable. To
+do this, first build the executable in one of the three ways described
+below (for preloading, paging or reading of the data file), and then run
+the resulting executable in the directory containing the C sources.
+Failing to find the .dat file, but finding adv6.h instead, the game will
+construct the .dat file from the .h one. From then on the game will run
+normally, getting its text data from the .dat file, which should be kept
+in the same place as the executable (but see the separate document
+on <a href="acode-comline.html">game invocation command options</a> for 
+an alternative).
+</li></p>
+
+<p><li><b>Loading text data on game startup</b><br>
+If -DMEMORY is added to any of the C compilation commands suggested
+above, the text data file will be preloaded into a dynamically allocated
+buffer on game startup. This used to be the default arrangement in
+A-code versions 10 and 11.
+</li></p>
+
+<p><li><b>Reading data from the text file</b><br>
+If your memory is constrained, but disk I/O is reasonably quick (which it
+would be unless you are running the game from a floppy disk), you can
+use the -DFILE compilation flag. This causes the game to read from the
+data file with no paging of its own, though one hopes that *some* paging
+will be done by the OS.  As a guess, such machines will have no GUI 
+browsers, so -DCONSOLE should also be added to compilation flags.
+</li></p>
+
+<p><li><b>Keeping recent text data in memory</b><br>
+If -DSWAP is added to any of the C compilation commands suggested above,
+all access to the text data file will be through an internal paging
+system of 32 1KB buffers, paging data in and out on the
+first-in-first-out basis. The number of swap buffers can be modified
+by defining the SWAP symbol to have a particular value, e.g. -DSWAP=40.
+The number of buffers will be coerced into the range from 16 to 128
+inclusive.
+<br>&nbsp;<br>
+This method is only useful for the oldest and slowest machines.
+Again, it probably makes sense to add -DCONSOLE as well, since a machine
+with such a limited amount of memory is unlikely to sport a GUI-based browser.
+</li></p>
+</ul>
+
+<hr id=symbols>
+
+<h3>Appendix 2: Kernel compilation symbols</h3>
+
+<p>Compilation symbols listed below can be added to the compilation command line
+as -D&lt;symbol&gt; when building A-code games. There is a number of other
+symbols being defined and used by kernel source files, which you should leave
+well alone.</p>
+
+<p>The main mode symbols have been already referenced above.</p>
+
+<p class=hung><b>CONSOLE</b> Specifies console-only mode</p>
+
+<p class=hung><b>CGI</b> Specifies single turn mode</p>
+
+<p class=hung><b>HTTP</b> Specifies combined browser/console mode &ndash; this
+is the default</p>
+
+<p class=hung><b>JS</b> Specifies JavaScript/HTML mode</p>
+
+<p class=hung><b>ADVLIB</b> Specifies library mode</p>
+
+<p>Four additional symbols can be used to control what system routines
+the game executable needs from the system.</p>
+
+<p class=hung><b>NO_UNISTD</b></dt> Signals absence of the unistd.h header
+file. Use it in all modes if you do not have the unistd library.</p>
+
+<p class=hung><b>NO_READLINE</b> Suppresses use of the readline library (only
+relevant in the console and browser/console modes &ndash; ignored
+otherwise).</p>
+
+<p class=hung><b>NO_SLOW</b> Suppresses the ability to slow down game's output
+(only relevant in the console and browser/console modes &ndash; ignored
+otherwise).</p>
+
+<p class=hung><b>PAUSE</b> Prevents immediate exit on game completion (useful
+when running in console mode in a window which automatically closes on game's
+exit).</p>
+
+<p>Three further symbols which are only required in kernel development
+work and/or in special builds.</p>
+
+<p class=hung><b>IOS</b> Signals iOS build.</p>
+
+<p class=hung><b>DEBUG</b> Enables various debug messages from the kernel.</p>
+
+<p class=hung><b>DIRECT</b> Prevents the HTTP server being daemonised in the
+browser mode &ndash; makes debugging easier!</p>
+
+<p>Finally, there are the deprecated symbols specifying ways of dealing
+with a separate text data file, if there is one. Note that these symbols override
+whatever text data arrangement was specified in running <b>acdc</b> to convert
+A-code sources into C.</p>
+
+<p class=hung><b>MEMORY</b> Text data file to be loaded into memory on
+startup.</p>
+
+<p class=hung><b>FILE</b> Text to be retrieved as required directly from
+the data file.</p>
+
+<p class=hung><b>SWAP[=&lt;page_buffers&gt;]</b> Text is to be paged
+in executables 1KB page buffers. The default is 32 such buffers, but
+another number can be specified between 16 and 128 inclusive.  
+</p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

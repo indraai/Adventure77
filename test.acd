@@ -1,0 +1,9 @@
+style 20 utf8
+fragment ЯЩИК
+  \"ЯЩИК to ящик\"
+text expression
+  The expression is {ящик}, capisco?
+init
+repeat
+  say expression
+  stop

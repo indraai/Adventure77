@@ -1,0 +1,82 @@
+<html>
+<head>
+<title>Building from A-code sources</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+
+<h2 class=centered>A-code internationalisation</h2>
+
+<p>As of version 20.01, A-code is UTF8 compliant and thus can be used to write
+games with messages, vocabulary and entitu names in languages other than
+English, including ones which use non-ASCII characters. All you need is a
+UTF8-compliant text editor. This document explains how to do so.</p>
+
+<p>While internationalisation is only possible since A-code version 20.01, it
+is available in games using A-code styles from 10 upwards. See the <a
+href='acode-language.html#'>STYLE major directive</a> in the A-code language
+documentation. </p>
+
+<ul>
+<li><a href="#utf8">Turning UTF8 mode on</a></li>
+<li><a href="#i18n">Re-defining hard-wired English terms</a></li>
+</ul>
+
+<hr id=utf8>
+
+<h3>Turning UTF8 mode on</h3>
+
+<p>To turn UTF8 mode on, use the STYLE major directive:</p>
+
+<pre>STYLE 12 UTF8</pre>
+
+<p>or just</p>
+
+<pre>STYLE UTF8</pre>
+
+<p>letting the system to use the highset numbered style available. Remember
+that all A-code code is case insensitive, so the above examples would
+work just as well in lower case or even mixed case.</p>
+
+<p>That's it! You can now have texts, command words and object/place names
+in any character set that can be represented in UTF8 encoding of Unicode.
+any script defined by the Unicode standard.</p>
+
+<p>There is, of course, a residual difficulty. From version 10 onwards, A-code
+permits hardwired English words being used to structure complex command:
+AND being used instead of a comma, and THEN being used instead
+of a semicolon. Furthermore, if the verb AGAIN is defined by the game, it is
+intercepted by the kernel and taken to men a request to repeat the previous
+command (see the <a href=acode-language.html#automatic>section on automatic
+entities and flags</a> in the A-code language documentation).</p>
+
+<p>The next section describes the way of replacing these hard-wired
+English terms.</p>
+
+<hr id=i18n>
+
+<h3>Re-defining hard-wired English terms</p>
+
+<p>Version 20 of A-code introduces a new major directive: PARSER ..... </p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<html>
+<head>
+<title>A-code history</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code language history (as I recall it)</h2>
+
+<p>
+The main purpose of this document is to explain (in response to some requests)
+why some aspects of my A-code implementation are the way they are, and what
+the future might hold if I get around to it.
+</p>
+
+<p>
+A-code is the language developed by Dave Platt in order to write his
+influential Adv550 expansion of the classic game Adventure by Crowther and
+Woods (Adv350 in the modern nomenclature). Originally written in PL6, a
+Fortran 77 implementation of the original A-code engine was distributed in the
+late 1980s together with the the Adv550 A-code source.
+</p>
+
+<p>
+Dave Platt's A-code engine had a "munger" and an "executive",
+both written in F77. The munger took the A-code source and produced a
+tokenised pseudo-binary. The executive was was effectively a virtual machine
+which executed the pseudo-binary. The lightly encoded game's text was in a
+separate file.
+</p>
+
+<p>
+I first made use of this original A-code implementation to merge Luckett's and
+Pike's Adventure II (now known as Adv440) with Adv550 and Platt's Adv550 into
+Adventure4, which later evolved into Adventure4+ (now known as Adv660).
+</p>
+
+<p>
+The initial Adventure4 and then Adventure4+ (1983 - 1985/6, on Primes)
+implementation took the A-code architecture as it was. The only changes to the
+munger/executive were in improving the command parser (e.g. automatically
+allowing all words to be abbreviated to the minimal unambiguous length,
+chaining commands on one line with semicolons, and providing AGAIN for command
+(simple or compound) repetition.
+</p>
+
+<p>
+In September 1990 I embarked on re-implementing A-code in C on Unix, the main
+aim being to teach myself C (my previous expertise was first in Algol/Algol68,
+then in Fortran4, then in Fortran77). I later joked that the new version was
+dedicated to the proposition that a real programmer can write Fortran in any
+language. That implementation was the seed of the current version and it
+moved away from Platt's in one crucial step, the full significance of which
+did not transpire until much later. Instead of replicating Platt's virtual
+machine approach, I wrote acdc, which translated A-code directly into
+compilable C, with game-independent kernel C source providing a library of
+standard calls used by the translated code.
+</p>
+
+<p>
+The reason for this shift was performance. Adventure4+ by that time became too
+large and complex, yet I wanted it to run on ordinary PCs as they then were.
+Virtual machine interpreter of pseudo-binary struggled with that, but compiled
+C worked just fine.
+</p>
+
+<p>
+To accommodate minuscule (by modern standards) memories standard at the time
+and the slow speed of disk access, I nicked from Prime an outline of their
+paging algorithm, and built that into the kernel, together with the ability to
+report locate demands, the number of locate buffers being specifiable at
+compilation time. This mechanism is still present within the kernel, but I
+expect it is by now completely redundant. The kernel also provided the
+option of reading all texts from the data file as required, with no paging
+mechanism, or to load the data file entirely into memory on startup. Initially
+there was no option for pre-loading all of the text into memory -- compilers
+of the time tended to choke on that.
+</p>
+
+<p>
+Unix (Irix in fact) and later Linux became the default platform. Initially I
+built DOS/Windows executables by using djgpp under DOS. Later DOS and Windows
+builds diverged. The DOS version is now created using djgpp (run under wine), 
+whereas the Windows version gets built using MinGW and packaged using InnoSetup.
+At some stage a Mac build was added as well.
+</p>
+
+<p>
+As memory capacities grew and general machine performance improved, I first
+added the option to build the whole game as a single executable with no data
+file &ndash; all text begin stored in initialised arrays in the C source. Later
+this became the default. Thus things stood until I embarked on Adv770, which
+is when I discovered some unexpected upsides and downsides of the approach I'd
+taken.
+</p>
+
+<p>I needed the game to be tested by others, but I knew from experience that
+it would be foolish to rely on testers to report all problems. Without knowing
+what is supposed to happen, it is not necessarily obvious whether things are
+going wrong or not. I simply had to have access to testers' log files. The
+only way this could be achieved was to run the game through a web interface
+&ndash; in the cloud, as one would say these days. Unfortunately, as the
+acdc/kernel implementation of A-code stood at the time, this simply was not
+possible. An A-code game was simply an executable, taking player commands from
+standard input and responding on standard output in a continuous loop.</p>
+
+<p>So I sat about to implement a single-turn operation mode. In this
+mode, instead of waiting for play command, the game would automatically dump
+its current state to disk and exit. And when a new command arrived via a web
+interface, the game would be restarted and the saved state automatically
+loaded before processing the command. This would be easy enough with Dave
+Platt's original virtual machine approach, but my translate-compile-and-run
+implementation entailed that in an A-code game there could be only a single
+place where the player could be asked for input. Specifically, any use of the
+QUERY directive, used in Adv550 and Adv660 to handle yes/no queries, was
+simply out.<p>
+
+<p>My eventual solution was to implement the context mechanism and replace
+any use of query with setting the special variable CONTEXT to a unique
+value, specifying the nature of the query, before saving the game state and
+exiting. Once a response arrived from the player, the game would restart and
+if the value of the restored CONTEXT indicated that a yes/no question had been
+asked, it would evaluate the answer in the same way as it would have done if
+QUERY had been used. This permitted cloud-based operation (initially CGI,
+later PHP). It also, quite unintentionally, enabled all A-code games
+(even Dave Platt's original code of Adv550) to have a persistent state. If
+a game was simply interrupted (or... erm.. crashed), it could be restarted
+from that point without being explicitly saved by the player.</p>
+
+<p>Some internal changes had to be introduced to support this development, and
+so the major version number of the acdc and the A-code kernel got incremented
+from 10 to 11. Version 11 also brought in another innovation. All earlier
+versions assumed games being played in a terminal emulator, and assumed 
+the display to be limited to 80 characters per line and 24 lines per
+screenful. Version 11 added the ability to run a game in its own window,
+initially by using the GLK library.<p>
+
+<p>Adv770 was finally released in 2003, but I continued tinkering with my
+A-code implementation anyway. 2008 brought version 12 of A-code, which removed
+the requirement of declaring game's entities before they could be used. This
+was achieved by changing the acdc translator to make two passes over game
+source instead of one &ndash the first pass collected information on all game
+entities being declared by the source and the second pass actually translated
+the source into C.</p>
+
+<p>In changing to version 12 I also took the opportunity of ditching GLK
+because its Unix/Linux implementation of GLK had severe limitations (and used
+really ugly, hard to change fonts). Instead an A-code game executable could
+launch the default browser and then act as a very simple HTTP server, using
+the browser as the user interface.</p>
+
+<p>In 2013 Brian Ball asked for changes which would enable him to port Adv770
+to iOS. This was an interesting challenge, since iOS demanded to be in charge
+of the game's command loop. So the kernel was twisted yet again, to allow a 
+&quot;library mode&quot;. Fortunately, this was not too hard to do, since the
+game persistent mechanism introduced for the CGI/PHP operation could be adapted
+for the purpose. The main difference being in returning accumulated text to
+the calling routine, instead of displaying it to the player.</p>
+
+<p>This change had a large unexpected payoff a year later, when I used
+emscripten to translate the C-code generated by acdc into JavaScript, so that
+it became possible to run the game entirely in an HTML 5 compliant browser.</p>
+
+<p>Finally, in 2020 (doesn't time fly!) I got around to making my
+implementation of A-code to be entirely UTF8 compliant. Now, UTF8 encoding
+could always be used in game texts and object/place descriptions. The
+challenge was to permit UTF8 (that is Unicode!) in entity names and hence in
+player vocabulary. That done, I also added PARSER &ndash; a new major directive
+which frees A-code games from any dependence on the English language by
+allowing one to re-define the default command parsing words AND, THEN and
+AGAIN. So if you want to write IF games in Japanese or Russian, you can!
+:-)</p>
+
+<p>And that's where things stand at the time of writing.</p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

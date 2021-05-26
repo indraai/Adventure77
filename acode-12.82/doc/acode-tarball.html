@@ -1,0 +1,116 @@
+<html>
+<head>
+<title>A-code language sources tarball</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+
+<h2 class=centered>Language sources and documentation</h2>
+
+<p>The A-code language sources tarball
+<a href='https://mipmip.org/acode/acode-12.82.tgz'>
+acode-12.82.tgz</a> contains the following basic directory hierarchy:
+<table class=centab><tr><td><b>
+<pre>                      acode-12.82
+                           │
+      ┌─────────────┬──────┴──────┬─────────────┐
+      │             │             │             │
+  acdc-12.42       bin           doc       kernel-12.82
+                                                │
+                                             extras
+</pre></b></td></tr></table></p>
+
+<p>
+  All contents of this tarball are licenced under the GPL3 (or later) &ndash;
+  see the LICENCE file in the top directory of the tarball.
+</p>
+
+<ul>
+<li><b>acdc-12.42</b><br>
+  C sources of the A-code to C translator </b>acdc</b>. This translator
+  is used (and built) automatically by the bash <i>advbld</i> script, but it
+  can also be used on its own. Once compiled and linked (&quot;cc *.c -o
+  acdc&quot;, which is done automatically by <i>advbld</i>), it will show
+  usage if given -h (or --help) command line option. See 
+  <a href="acode-c-build.html">acode-c-build.html</a> for an explanation of
+  translator's uses, if <i>advbld</i> is not available or cannot be used.
+</li>
+<li><b>bin</b><br>
+Contains the following A-code bash script tools:
+<ul>
+<li><b>advbld</b><br>
+  An all-purpse bash script for building A-code game executables. See
+  <a href='advbld.html'>a separate page</a> for a guide to this script's
+  use. If, for whatever reason, you cannot or do not wish to use
+  <i>advbld</i>, <a href='acode-c-build.html'>there is a separate
+  page</a> explaining how to create game executables from supplied C
+  sources, and <a href='acode-a-build.html'> another page</a> explaining
+  how to convert A-code source to derived C source. <b>Please note</b>
+  that in order to work, the script must be executed where it is in the
+  supplied directories hierarchy, since it expects other parts of the
+  hierarchy to be in the same relative positions, as supplied in the
+  tarball. The top level directory <i>acode-12.82</i> can, however, be
+  renamed as you please.
+</li>
+<li><b>lib.sh</b><br>
+  A library of shell functions used by the <i>advbld</i> sript.
+</li>
+</ul>
+<li><b>doc</b><br>
+  A-code documentation in HTML format.
+</li>
+<li><b>kernel-12.82</b><br>
+  A-code kernel C sources to compile and link with derived game C
+  sources created by the <i>acdc</i> translator. The <i>extras</i>
+  sub-directory contains bits and pieces required by specialist build modes
+  (Javascript/HTTP, library test and QT5).
+</li>
+<!--
+</ul>
+<h2>Game sources</h2>
+<p>A-code game sources. Each of these contains A-code source of the game
+  as well as a subdirectory called C, containing C sources derived by the
+<i>acdc</i> translator from the game's A-code source.</p>
+<ul>
+<li><b>adv770-2.19</b><br>
+  My 770-point superset of my Adv660. Unlike Adv550 and Adv660, this
+  game does not need a separate single-turn/library mode version.
+</li>
+<li><b>adv660-10.11</b><br>
+  My 660-point merge of Lucket's and Pike's Adv440 and Platt's Adv550.
+  Also supplied is a minimally modified version of adv660, compatible
+  with singe-turn and library builds.
+</li>
+<li><b>adv550-1.1</b><br>
+  Dave Platt's original A-code source of Adv550, dated 9.18.1984. Also
+  supplied is a minimally modified version of Adv550, compatible with
+  singe-turn and library builds.
+</li>
+<li><b>cloak-1.3</b><br>
+  My A-code implementation of the <i>Cloak</i> test micro-adventure.
+  (See <a href="http://www.firthworks.com/roger/cloak/">
+  http://www.firthworks.com/roger/cloak/</a> for other implementations.)
+</li>
+</ul>
+-->
+</td></tr></table>
+<hr>
+</body>
+</html>

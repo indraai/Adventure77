@@ -1,0 +1,230 @@
+<html>
+<head>
+<title>A-code vocabulary</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+<h2 class=centered>A-code vocabulary</h2>
+
+<p>A-code vocabulary structure and handling have some unusual features,
+motivated by my desire to make IF games more player-friendly and less
+'mechanical' in their responses to player commands.  This document deals
+specifically with vocabulary handling, rather than with the more general topic
+of player command parsing.  See a <a href="acode-parser.html">separate
+document</a> for parsing details.</p>
+
+<p>There are four specific areas in which A-code vocabulary handling is unusual. These are: 
+<ul>
+<li><a href="#abbrev">Automatic abbreviations</a></li>
+<li><a href="#typos">Approximate matching (a.k.a. 
+   typo correction)</a></li>
+<li><a href="#3D">Synonyms and sub-synonyms (a.k.a.
+   the 3D vocabulary structure)</a></li>
+<li><a href="#listing">Vocabulary listing</a></li>
+</ul></p>
+
+<hr id=abbrev>
+<h2>Automatic abbreviations</h2>
+
+<p>By default, all vocabulary words are automatically abbreviated to the
+shortest unambiguous length.  For example, if the vocabulary contains
+<b>KICK</b> and no other word beginning with <b>K</b>, then <b>KICK</b> is automatically
+abbreviable as any of <b>K</b>, <b>KI</b> and <b>KIC</b>.  If, however, the vocabulary also
+contains <b>KILL</b> (and no other word beginning with <b>KI</b>), then <b>KICK</b> is only
+abbreviable to <b>KIC</b>, and <b>KILL</b> to <b>KIL</b>.<p>
+
+<p>There are, of course, command words which must not be abbreviated:
+this is particularly true for any magic words.  E.g.  we do not want <b>X</b>
+to mean <b>XYZZY</b>!  This is catered for in vocabulary declarations by
+prefixing the non-abbreviable word with an exclamation mark:</p>
+
+<p><b>verb !xyzzy</b><p>
+
+<p>This does not, however, eliminate all unwanted abbreviations.  For
+example, a player may wish to save a game under some arbitrary name,
+which just happens to be a legitimate abbreviation of some vocabulary
+word.  Clearly, the intended name should not be expanded to the
+vocabulary word in question.</p>
+
+<p>This problem is solved by permitting some vocabulary verbs to be
+marked as &quot;special&quot; in that other words in the command are
+taken verbatim, as entered by the player (except for the case, which is
+always normalised to lower case).  For historical reasons, instead of
+such special verbs being flagged individually, at present (A-code
+version 12) they are grouped in one block of verb declarations:</p>
+
+<p><b>verb -first.special</b><br>
+[standard declarations of any special verbs]<br>
+<b>verb -last.special</b></p>
+
+<p>The '-' sign preceding &quot;first.special&quot; and
+&quot;last.special&quot; indicate that these are pseudo-verbs, not to be
+added to the game's vocabulary.  This is an extension of the same
+convention in declaring object names.</p>
+
+<p>To cater for any other instances in which abbreviation expansion is
+not wanted, setting the mandatory STATUS variable to the built-in value
+of NO.MATCH suppresses expansion for the duration of one command
+cycle.</p>
+
+<a>As a further wrinkle, for object names, abbreviation matching is performed
+only if the object in question is either carried by the player or is in the
+same location as the player. This prevents game secrets being inadvertently
+revealed by being too generous in interpreting player's command.</p>
+
+<p>See the <a href="acode-parser.html">document on command
+parsing</a> for an explanation of A-code's response to ambiguous
+abbreviations.</p>
+
+<hr id=typos>
+<h2>Approximate matching</h2>
+
+<p>My typing is terrible. From seeing many player logs I know that I am
+not alone in this. That's why by default A-code enables automatic
+approximate matching of words entered by the player against words in the
+game's vocabulary. This feature is activated by the game declaring a text
+named TYPO, the assumed purpose of which is to report typo matching. This is
+necessary because otherwise typo correction can look distinctly baffling
+to players.</p>
+
+<p>If a single typo is sufficient to transform an
+unknown word type by the player into a unique, non-abbreviated
+match in the vocabulary, that match is accepted as the
+player's command word. Here by a typo I mean a single character dropped,
+a single character interpolated, a single character substituted by
+another character or two adjacent characters swapped around. Thus, for
+example GET BOTTEL will be understood as GET BOTTLE.</p>
+
+<p>Note, however, that approximate matching is attempted instead of, rather
+than in addition to unique abbreviation matching, if no unique abbreviation is
+found. Thus if BOTT is a unique abbreviation of BOTTLE, then GET BOTT will be
+understood, but GET BORT will not. That's because BORT differs from BOTTLE by
+three typos rather than one: mistyped R instead of T and two missing letters L
+and E at the end.</p>
+
+<p>Clearly enough, the same problems arise here as with abbreviation
+matching. These are dealt with by the same mechanisms. No approximate
+matching in the following circumstances:</p>
+
+<ul>
+<li>word declared as non-abbreviable</li>
+<li>word accompanies a verb declared as &quot;special&quot;</li>
+<li>word refers to an object not yet seen by the player</li>
+<li>the STATUS variable is set to NO.MATCH or NO.AMATCH (duration one
+command cycle)</li>
+</ul>
+
+<p>See the <a href="acode-parser.html">document on command
+parsing</a> for a detailed explanation of A-code's responses to
+approximately matched commands.</p>
+
+<hr id=3D>
+<h2>Synonyms and sub-synonyms</h2>
+
+<p>Traditionally, IF game vocabulary is a 2D structure, consisting of
+list of lists of synonyms.  Thus, for example, using A-code notation</p>
+
+<p><b>verb get, take<br>
+verb drop, release</b></p>
+
+<p>declares two vocabulary terms, both of which are denoted by two
+synonymous words.  From version 10, A-code adds a third dimension: any
+individual word in the traditional structure may be associated with a
+list of sub-synonyms.  For example, in Adv770 the full definitions of
+get and drop are as follows:</p>
+
+<p><b>verb get, =g, =reach, carry, take, =t, pickup, keep, hold, catch,
+grab, =grip, clutch, steal, capture, tote, scoop<br>
+verb drop, =dr, =discard, =fall, =abandon, free, =release, =let</b></p>
+
+<p>The '=' sign preceding a word indicates that word to be a sub-synonym
+of the last preceding word not prefixed with '='.  So G and REACH are
+sub-synonyms of GET, but CARRY is not.</p>
+
+<p>This additional vocabulary structure is motivated by my preference
+for responding to player commands rather more explicitly than is
+traditionally the case.  Thus instead of the standard and rather
+mechanical &quot;Taken.&quot; in response to GET CAGE, I like the game
+to respond with &quot;You get the cage.&quot;.  But there is a very
+obvious snag to this: G CAG should not result in &quot;You g the
+cag.&quot;</p>
+
+<p>While the expansion of &quot;cag&quot; to &quot;cage&quot; is handled
+by the abbreviation processing feature of the parser, &quot;g&quot; is
+declared explicitly as a vocabulary word, so does not get expanded as an
+abbreviation.  If there were no other verbs beginning with g, it would
+not be necessary to include &quot;g&quot; as a verb synonym &ndash; the
+abbreviation processor would do the expanding, but that's not a
+realistic solution.  Hence the declaration of &quot;g&quot; as a
+sub-synonym of &quot;get&quot;, which instructs the A-code engine to
+echo the latter if the command verb is to be echoed.</p>
+
+<hr id=listing>
+<h2>Vocabulary listing</h2>
+
+<p>To my mind, one of the most irritating features of many IF games is the need
+to guess what words may or may not be present in the game's vocabulary. A-code
+offers an intelligent way of making the vocabulary listing available to
+players, without revealing things players should not as yet know about. This
+is achieved by the minor directive VOCAB, which is a kind-of fancy wrapper
+around the SAY directive. The full syntax of the directive is as follows:</p>
+
+<p><b>VOCAB {&lt;OBJECT&gt;|&lt;PLACE&gt;|&lt;WORD&gt;} [, {&lt;PLACE&gt;}] [,
+{&lt;FLAG&gt;}] [, {&lt;TEXT&gt;}]</b></p>
+
+<p>The first argument is the vocabulary word to be conditionally included in a
+vocabulary listing. The optional second and the third arguments specify
+conditions under which the word is to be included. The fourth argument, also
+optional, specifies the text to be shown instead of the word given by the 1st
+argument. Each vocabulary word shown to the player is prefixed with a comma
+followed by a space. A special form of the directive</p>
+
+<p><b>VOCAB [&lt;TEXT&gt;]</b></p> 
+
+<p>is used to signal the start of a sequence of VOCAB directives. It can
+optionally display a text, but its main purpose is to suppress the
+comma-and-space lead of the following vocabulary list.
+
+<p>As an example, here are some VOCAB commands from Adv770</p>
+
+<dl>
+  <dt><b>vocab voc.lead</b></dt>
+  <dd>A special form, signalling the beginning of a vocabulary
+    listing in order to suppress the leading comma before the first word
+    to be shown; in this example a text name is given as an argument, so
+    the <b>voc.lead</b> message will be also displayed.
+    </dd><br>
+  <dt><b>vocab axe</b></dt>
+  <dd>The word <b>axe</b> is shown unconditionally.</dd><br>
+  <dt><b>vocab alarm, seen</b></dt>
+  <dd>The word <b>alarm</b> is shown if the
+    <i>seen</i> bit of the <i>alarm</i> object is set.</dd><br>
+  <dt><b>vocab bones, bones.room, been.here</b></dt>
+  <dd>The word <b>bones</b> is shown if
+    the player has been at the <i>bones.room</i> location.</dd><br>
+  <dt><b>vocab eggs, seen, eggs.voc</b></dt>
+  <dd>The text <i>eggs.voc</i> (in this case &quot;eggs (nest)&quot;)
+   is shown if the object <i>eggs</i> has been seen.</dd>
+</dl>
+
+</td></tr></table>
+<hr>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<html>
+<head>
+<title>Preserving game upward compatibility</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.centered {text-align:center}
+.ltext {text-align:left}
+.rtext {text-align:right}
+.ltd {text-align:left; padding:4px}
+.ctd {text-align:center; padding:4px}
+.rtd {text-align:right; padding:4px}
+.invis {color:}
+.hung {text-indent:-0.5cm; margin-left:1cm}
+.indented {margin-left:0.5cm}
+.indented2 {margin-left:1.0cm}
+.dotted {border: 1px dotted #000000; border-style: none none dotted; }
+table.frame {max-width:700px; width:98%; margin:auto}
+table.centab {margin:auto}
+</style>
+</head>
+<body bgcolor="#d0e0ff">
+
+<table class=frame><tr><td>
+
+<h2 class=centered>A-code upward compatibility of saved games</h2>
+
+<p>A-code makes it fairly simple to preserve upward compatibility of saved
+games. Essentially, all one has to do is to ensure that refnos of game's
+entities do not change relative to a given entity type. Clearly, this
+terse summary needs unpacking...<p>
+
+<p>Refnos were briefly explained <a href="acode-language.html#refnos">in the
+main description of the A-code language</a>, so just briefly...</p>
+
+<p>A refno (or in full a reference number) is a number uniquely assigned by
+A-code to value-bearing declared entities &ndash; i.e. to objects, locations,
+variables and texts. The important point is that these refnos are allocated
+sequentially within each of these four categories in the order of entity
+declarations. Thus in a game source which mixes randomly object, place,
+variable and text declarations, objects will be numbered consecutively in
+their order of declaration, followed by places in their order of declaration
+etc.</p> 
+
+<p>It is by preserving associations of refnos to game entities <i>within</i>
+these categories that saved games are kept upwardly compatible. So let's
+consider what specifically would or would not break such compatibility. For
+simplicity, I'll stick with talking about objects, but exactly the same points
+apply within the other categories.</p>
+
+<p>If a previously declared object is removed in a later version of game's
+code, then all objects declared after the removed one will have their refnos
+reduced by one. If there are such objects, compatibility breaks. If there
+aren't (i.e. if the last declared object was removed, it does not break.</p>
+
+<p>Similarly, if an object is added, then refnos of all objects declared later
+in the game's code will be increased by one. If there are such objects,
+compatibility breaks. If there aren't (i.e. if the added object is the last
+object declaration, it does not break.</p>
+
+<p>So, <b>Rule 1: do not add or remove objects except at the end of all
+object declarations.</b></p>
+
+<p>Remember that A-code allows forward declarations. I.e. you can reference an
+object <i>before</i> it is declared. Hence adding new objects only at the end
+is not a problem. But what if you need to remove an object which is not the
+last in object declaration order? Simple: don't remove it. Just leave it
+there, possibly giving it a different name, e.g. SPARE.OBJ.1 or something
+equally obvious. Better still, make its new name start with a dot:
+.SPARE.OBJ.1 -- this will stop the <i>acdc</i> translator complaining about an
+object being declared but not used. If later on you do want to re-use that
+spare slot for some other object, you can do so, but you cannot assume its
+value to be zero after a game is reloaded &ndash; that game may have been
+saved before you removed the original object.<p>
+
+<p>In fact, the same applies to removing and then adding an object at the end
+of object declarations, so here's a safer version of the rule:</p>
+
+<p><b>Rule 1a: do not remove objects; any additional objects must be added
+at the end of all object declarations.</b></p>
+
+<p>As explained in <a href="acode-language.html#flags">the language description
+document</a>, in addition to an integer value all objects, places and
+variables carry a bit-screen of flags. Flags have to be declared as symbolic
+names, but as far as the A-code kernel is concerned, such names are just
+synonyms for integer (non-negative) bit-screen offsets. Just as for refno
+association with entities, the association of these values with flag symbolic
+names must be preserved if saved games are upwardly compatible.</p>
+
+<p>Therefore Rule 1, stated above, applies to flag declarations too
+(separately for object, location and variable flag sets), but there is an
+additional constraint, which can be stated as</p>
+
+<p><b>Rule 2: do not change bit-screen byte-sizes!</b></p>
+
+<p>Again, this needs unpacking and to do so, I need to explain a bit about
+internal data structures involved.</p>
+
+<p>While A-code only permits a single flags declaration for both of objects
+and places, multiple flag sets of various sizes can be declared for variables.
+It may seem puzzling that bit-screens carried by variables are not somehow
+associated with particular variables (except possibly via code comments). The
+simple explanation is that there is in fact just one bit-screen for variables
+too. All the separate declarations of it merely define different synonyms for
+the same bit offsets. Thus e.g.</p>
+
+<pre>
+FLAGS VARIABLE
+      FLAG1
+      FLAG2
+FLAGS VARIABLE
+      FLAG3
+      FLAG4
+      FLAG5
+</pre>
+
+<p>define one bit-screen of three bits, where FLAG1 and FLAG3 are both synonyms
+for 0, FLAG2 and FLAG4 are both synonyms for 1, and FLAG5 is a synonym for 2.</p>
+
+<p>To make things more complicated, for historical reasons, location and
+object bit-screens automatically reserve the first three bits for kernel's
+use. Thus</p>
+
+<pre>
+FLAGS OBJECT
+      OFLAG1
+      OFLAG2
+</pre>
+
+<p>declares a bit-screen of <b>five</b> bits, with OFLAG1 as a symbolic name for 3
+and OFLAG2 as a symbolic name for 4.</p>
+
+<p>And as a final complication, bit-screens are actually allocated in 8-bit
+bytes. Hence in the above examples, the object bit-screen will have three spare
+flags (offsets 5, 6 and 7), while the variable bit-screen will have 5 spare
+(offsets 3, 4, 5, 6 and 7).</p>
+
+<p>We are now ready to calculate &quot;bit-screen byte-sizes&quot; that have to be
+preserved. If the longest variable bit-screen declared by game's code has N
+flags, the size of the bit-screen is the smallest number of 8-bit bytes
+containing at least N bits. For both place and object bit-screens it is the
+smallest number of bytes containing at least N + 3 bits.</p>
+
+<p>Thus, for example, if you have 17 distinct (non-synonymous) object flags,
+the number of bits actually uses is 20, leaving you with four spare flags. Of
+course, there is nothing to stop you declaring explicitly some spare flags
+(with names prefixed with a . to keep <i>acdc</i> happy) for potential future
+use.</p?
+
+<p>That's almost it, but there is an additional wrinkle to do with texts.</p>
+
+<p><b>Rule 3: do not use text morphing features in in-line texts.</b></p>
+
+<p>By this I mean texts which have an internal dynamic: incrementing, cycling
+or randomised &ndash; in the case of in-line texts signalled respectively by
+'i:', 'c:' and 'r:' at the beginning of the text. The 'f:' prefix, signalling
+that the in-line text is a fragment, is benign.</p>
+
+<p>The reason for this restriction is simple: by their very nature, the order
+of declaration of inline texts is what it is. While the <i>acdc</i> translator
+can group them all safely at the end of text refnos, it can do nothing about
+their ordering. Therefore adding an in-line text necessarily increments refnos
+of all succeeding in-line texts. If such texts have no internal dynamic, this
+is not a problem, since being nameless, they cannot be referenced from
+elsewhere in the code.</p>
+
+<p>And that's really it. Just remember that Rule 1 applies separately to
+locations, declared texts and flags as well. In practice, while working on and
+testing Adv770 I found that preserving upward compatibility between game
+versions was not hard. If the kernel ever changes in a way which would enforce
+upward compatibility break, this will be signalled by a change in its major
+version number. </p>
+
+</td></tr></table>
+<hr>
+</body>
+</html>
